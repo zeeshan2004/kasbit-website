@@ -4,6 +4,8 @@
             'name' => $home->{"top_location_{$index}_name"} ?? null,
             'url' => $home->{"top_location_{$index}_url"} ?? null,
         ])->filter(fn ($location) => filled($location['name']));
+        $loginMenu = $headerMenus->firstWhere('name', 'Login');
+        $loginChildren = $loginMenu?->children->where('is_active', true) ?? collect();
     @endphp
     <div class="top-header">
         <div class="top-header-inner">
@@ -16,6 +18,32 @@
             </div>
 
             <div class="top-header-actions">
+                @if($loginMenu)
+                    <div class="dropdown top-login-dropdown">
+                        <button type="button"
+                                class="top-login-toggle"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                                aria-label="Open login links">
+                            <i class="{{ $loginMenu->icon ?: 'fa-solid fa-right-to-bracket' }}"></i>
+                            <span>{{ $loginMenu->name }}</span>
+                            <i class="fa-solid fa-chevron-down top-login-chevron"></i>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end top-login-menu">
+                            @forelse($loginChildren as $loginChild)
+                                <a class="dropdown-item" href="{{ $loginChild->link ?: '#' }}">
+                                    <i class="{{ $loginChild->icon ?: 'fa-solid fa-circle' }}"></i>
+                                    <span>{{ $loginChild->name }}</span>
+                                </a>
+                            @empty
+                                <a class="dropdown-item" href="{{ $loginMenu->link ?: '#' }}">
+                                    <i class="fa-solid fa-right-to-bracket"></i>
+                                    <span>Login</span>
+                                </a>
+                            @endforelse
+                        </div>
+                    </div>
+                @endif
                 @if($home->header_phone ?? false)
                     <a href="tel:{{ preg_replace('/[^0-9+]/', '', $home->header_phone) }}" aria-label="Call KASBIT" title="{{ $home->header_phone }}">
                         <i class="fa-solid fa-phone"></i>
@@ -48,7 +76,7 @@
 
 <header class="site-header sticky-top">
     <div class="container-fluid p-0">
-        <nav class="navbar navbar-expand-lg header-navbar">
+        <nav class="navbar navbar-expand-xxl header-navbar">
             <a class="navbar-brand header-brand m-0" href="{{ url('/') }}">
                 @if($home->header_logo_url ?? false)
                     <span class="start-menu-button">
@@ -71,15 +99,85 @@
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav mx-auto header-nav">
                     @forelse($headerMenus as $menu)
+                        @if(in_array($menu->name, ['ORIC', 'Login'], true))
+                            @continue
+                        @endif
+
+                        @if($menu->name === 'QEC')
+                            @php
+                                $oricMenu = $headerMenus->firstWhere('name', 'ORIC');
+                                $qecChildren = $menu->children->where('is_active', true);
+                                $oricChildren = $oricMenu?->children->where('is_active', true) ?? collect();
+                            @endphp
+                            <li class="nav-item dropdown mega-menu-item">
+                                <a class="nav-link dropdown-toggle"
+                                   href="#"
+                                   role="button"
+                                   data-bs-toggle="dropdown"
+                                   data-bs-auto-close="outside"
+                                   aria-expanded="false">
+                                    QEC &amp; ORIC
+                                </a>
+                                <div class="dropdown-menu qec-oric-menu">
+                                    <div class="qec-oric-grid">
+                                        <section class="qec-oric-column">
+                                            <a href="{{ $menu->link ?: '#' }}" class="qec-oric-heading">
+                                                <i class="{{ $menu->icon ?: 'fa-solid fa-shield-halved' }}"></i>
+                                                QEC
+                                            </a>
+                                            <div class="qec-oric-links">
+                                                @foreach($qecChildren as $child)
+                                                    <a class="dropdown-item" href="{{ $child->link ?: '#' }}">{{ $child->name }}</a>
+                                                @endforeach
+                                            </div>
+                                        </section>
+
+                                        <section class="qec-oric-column">
+                                            <a href="{{ $oricMenu?->link ?: '#' }}" class="qec-oric-heading">
+                                                <i class="{{ $oricMenu?->icon ?: 'fa-solid fa-flask' }}"></i>
+                                                ORIC
+                                            </a>
+                                            <div class="qec-oric-links">
+                                                @foreach($oricChildren as $child)
+                                                    <a class="dropdown-item" href="{{ $child->link ?: '#' }}">{{ $child->name }}</a>
+                                                @endforeach
+                                            </div>
+                                        </section>
+                                    </div>
+                                </div>
+                            </li>
+                            @continue
+                        @endif
+
                         @if($menu->children->where('is_active', true)->count())
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="{{ $menu->link ?: '#' }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    {{ $menu->name }}
-                                </a>
+                                @php
+                                    $menuLink = trim((string) $menu->link);
+                                    $hasPageLink = $menuLink !== '' && $menuLink !== '#';
+                                @endphp
+                                @if($hasPageLink)
+                                    <div class="nav-split-link">
+                                        <a class="nav-link" href="{{ $menuLink }}">
+                                            {{ $menu->name }}
+                                        </a>
+                                        <button type="button"
+                                                class="nav-dropdown-trigger dropdown-toggle"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                                aria-label="Open {{ $menu->name }} menu"></button>
+                                    </div>
+                                @else
+                                    <a class="nav-link dropdown-toggle" href="{{ $menu->link ?: '#' }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        {{ $menu->name }}
+                                    </a>
+                                @endif
                                 <ul class="dropdown-menu">
                                     @foreach($menu->children->where('is_active', true) as $child)
                                         <li>
-                                            <a class="dropdown-item" href="{{ $child->link ?: '#' }}">{{ $child->name }}</a>
+                                            <a class="dropdown-item"
+                                               href="{{ $child->name === 'About Us' ? route('about', [], false) : ($child->link ?: '#') }}">
+                                                {{ $child->name }}
+                                            </a>
                                         </li>
                                     @endforeach
                                 </ul>
@@ -124,3 +222,37 @@
         </nav>
     </div>
 </header>
+
+@once
+    @push('scripts')
+        <script>
+            (() => {
+                const navbar = document.querySelector('.header-navbar');
+                const collapse = navbar?.querySelector('.navbar-collapse');
+
+                if (!navbar || !collapse || typeof ResizeObserver === 'undefined') return;
+
+                let frame;
+
+                const fitHeaderMenu = () => {
+                    window.cancelAnimationFrame(frame);
+                    frame = window.requestAnimationFrame(() => {
+                        navbar.classList.remove('header-force-collapse');
+
+                        if (window.innerWidth < 1400) return;
+
+                        const overflowed = navbar.scrollWidth > navbar.clientWidth + 2
+                            || collapse.scrollWidth > collapse.clientWidth + 2;
+
+                        navbar.classList.toggle('header-force-collapse', overflowed);
+                    });
+                };
+
+                new ResizeObserver(fitHeaderMenu).observe(navbar);
+                window.addEventListener('resize', fitHeaderMenu, { passive: true });
+                document.fonts?.ready.then(fitHeaderMenu);
+                fitHeaderMenu();
+            })();
+        </script>
+    @endpush
+@endonce

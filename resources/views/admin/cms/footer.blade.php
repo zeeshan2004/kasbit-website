@@ -139,7 +139,7 @@
     </div>
 </x-admin-layout>
 
-<script>
+<script data-admin-page-script>
 document.getElementById('add-footer-gallery')?.addEventListener('click', function () {
     const wrapper = document.getElementById('footer-gallery-fields');
     const field = wrapper.querySelector('.footer-gallery-field').cloneNode(true);

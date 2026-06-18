@@ -10,12 +10,15 @@ class HeaderMenu extends Model
         'parent_id',
         'name',
         'link',
+        'icon',
+        'show_in_admin_sidebar',
         'sort_order',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'show_in_admin_sidebar' => 'boolean',
     ];
 
     public function parent()
@@ -26,5 +29,10 @@ class HeaderMenu extends Model
     public function children()
     {
         return $this->hasMany(self::class, 'parent_id')->orderBy('sort_order')->orderBy('name');
+    }
+
+    public function page()
+    {
+        return $this->hasOne(HeaderMenuPage::class);
     }
 }

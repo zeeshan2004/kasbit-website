@@ -4,11 +4,16 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PageController;
+use App\Http\Controllers\Admin\HeaderMenuPageController;
+use App\Http\Controllers\Admin\HeaderMenuPageSlideController;
 use App\Http\Controllers\Admin\HomeCmsController;
 use App\Http\Controllers\Admin\HeaderMenuController;
 use App\Http\Controllers\Admin\FooterCmsController;
 use App\Http\Controllers\Admin\NewsItemController;
 Route::get('/', [HomeController::class, 'index']);
+Route::get('/about', [HomeController::class, 'about'])->name('about');
+Route::get('/pages/{page:slug}', [PageController::class, 'show'])->name('pages.show');
 
 // Location Routes
 Route::get('/location/{id}', function ($id) {
@@ -55,6 +60,18 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 
     Route::post('/header-menu/settings', [HeaderMenuController::class, 'updateSettings'])
         ->name('header-menu.settings.update');
+    Route::patch('/header-menu/{headerMenu}/toggle', [HeaderMenuController::class, 'toggle'])
+        ->name('header-menu.toggle');
+    Route::get('/header-menu/{headerMenu}/page', [HeaderMenuPageController::class, 'edit'])
+        ->name('header-menu.page.edit');
+    Route::put('/header-menu/{headerMenu}/page', [HeaderMenuPageController::class, 'update'])
+        ->name('header-menu.page.update');
+    Route::post('/header-menu-pages/{page}/slides', [HeaderMenuPageSlideController::class, 'store'])
+        ->name('header-menu-page-slides.store');
+    Route::put('/header-menu-page-slides/{slide}', [HeaderMenuPageSlideController::class, 'update'])
+        ->name('header-menu-page-slides.update');
+    Route::delete('/header-menu-page-slides/{slide}', [HeaderMenuPageSlideController::class, 'destroy'])
+        ->name('header-menu-page-slides.destroy');
 
     Route::resource('header-menu', HeaderMenuController::class)
         ->except(['create', 'show'])

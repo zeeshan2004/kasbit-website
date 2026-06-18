@@ -140,11 +140,39 @@
                     <input type="number" min="0" name="sort_order" value="{{ old('sort_order', $editMenu->sort_order ?? 0) }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent">
                 </div>
 
-                <div class="md:col-span-2 flex items-center justify-between pt-2">
-                    <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
-                        <input type="checkbox" name="is_active" value="1" class="rounded border-gray-300" @checked(old('is_active', $editMenu->is_active ?? true))>
-                        Show on frontend header
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Admin Sidebar Icon</label>
+                    <select name="icon" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent">
+                        @foreach(\App\Http\Controllers\Admin\HeaderMenuController::iconOptions() as $icon => $label)
+                            <option value="{{ $icon }}" @selected(old('icon', $editMenu->icon ?? 'fa-solid fa-folder') === $icon)>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Icon Website Sections menu mein nazar aayega.</p>
+                </div>
+
+                <div class="rounded-lg border border-indigo-100 bg-indigo-50 p-4">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox"
+                               name="show_in_admin_sidebar"
+                               value="1"
+                               class="mt-1 rounded border-gray-300"
+                               @checked(old('show_in_admin_sidebar', $editMenu->show_in_admin_sidebar ?? false))>
+                        <span>
+                            <strong class="block text-sm text-gray-800">Show in Admin Website Sections</strong>
+                            <span class="block text-xs text-gray-500 mt-1">Top-level item aur uski subcategories sidebar mein show hongi.</span>
+                        </span>
                     </label>
+                </div>
+
+                <div class="md:col-span-2 flex flex-wrap items-center justify-between gap-4 pt-2">
+                    <div class="flex flex-wrap gap-5">
+                        <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
+                            <input type="checkbox" name="is_active" value="1" class="rounded border-gray-300" @checked(old('is_active', $editMenu->is_active ?? true))>
+                            Show on frontend header
+                        </label>
+                    </div>
                     <button type="submit" class="px-5 py-2 bg-kasbitBlue hover:bg-blue-800 text-white rounded-lg shadow">
                         {{ $editMenu ? 'Update Item' : 'Add Item' }}
                     </button>
@@ -164,6 +192,7 @@
                             <th class="px-6 py-3 text-sm font-bold text-gray-700">Name</th>
                             <th class="px-6 py-3 text-sm font-bold text-gray-700">Link</th>
                             <th class="px-6 py-3 text-sm font-bold text-gray-700">Order</th>
+                            <th class="px-6 py-3 text-sm font-bold text-gray-700">Admin Sidebar</th>
                             <th class="px-6 py-3 text-sm font-bold text-gray-700">Status</th>
                             <th class="px-6 py-3 text-sm font-bold text-gray-700">Actions</th>
                         </tr>
@@ -174,7 +203,27 @@
                                 <td class="px-6 py-4 font-semibold text-gray-900">{{ $menu->name }}</td>
                                 <td class="px-6 py-4 text-gray-700">{{ $menu->link }}</td>
                                 <td class="px-6 py-4">{{ $menu->sort_order }}</td>
-                                <td class="px-6 py-4">{{ $menu->is_active ? 'Active' : 'Hidden' }}</td>
+                                <td class="px-6 py-4">
+                                    <form method="POST" action="{{ route('header-menu.toggle', $menu) }}" data-admin-toggle>
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="field" value="show_in_admin_sidebar">
+                                        <button type="submit" class="inline-flex items-center gap-2 font-semibold {{ $menu->show_in_admin_sidebar ? 'text-emerald-700' : 'text-gray-400' }}">
+                                            <i class="{{ $menu->icon ?: 'fa-solid fa-folder' }}"></i>
+                                            {{ $menu->show_in_admin_sidebar ? 'Visible' : 'Hidden' }}
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <form method="POST" action="{{ route('header-menu.toggle', $menu) }}" data-admin-toggle>
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="field" value="is_active">
+                                        <button type="submit" class="relative inline-flex h-6 w-11 items-center rounded-full transition {{ $menu->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}" title="Toggle frontend status">
+                                            <span class="inline-block h-4 w-4 transform rounded-full bg-white transition {{ $menu->is_active ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                                        </button>
+                                    </form>
+                                </td>
                                 <td class="px-6 py-4 flex gap-2">
                                     <a href="{{ route('header-menu.edit', $menu) }}" class="px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg">
                                         <i class="fa-solid fa-pen-to-square"></i>
@@ -193,7 +242,19 @@
                                     <td class="px-6 py-4 pl-12 text-gray-800">- {{ $child->name }}</td>
                                     <td class="px-6 py-4 text-gray-700">{{ $child->link }}</td>
                                     <td class="px-6 py-4">{{ $child->sort_order }}</td>
-                                    <td class="px-6 py-4">{{ $child->is_active ? 'Active' : 'Hidden' }}</td>
+                                    <td class="px-6 py-4 text-gray-500">
+                                        <i class="{{ $child->icon ?: 'fa-solid fa-circle' }} mr-2"></i>With parent
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <form method="POST" action="{{ route('header-menu.toggle', $child) }}" data-admin-toggle>
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="field" value="is_active">
+                                            <button type="submit" class="relative inline-flex h-6 w-11 items-center rounded-full transition {{ $child->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}" title="Toggle frontend status">
+                                                <span class="inline-block h-4 w-4 transform rounded-full bg-white transition {{ $child->is_active ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                                            </button>
+                                        </form>
+                                    </td>
                                     <td class="px-6 py-4 flex gap-2">
                                         <a href="{{ route('header-menu.edit', $child) }}" class="px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg">
                                             <i class="fa-solid fa-pen-to-square"></i>
@@ -210,7 +271,7 @@
                             @endforeach
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">No header menu items yet.</td>
+                                <td colspan="6" class="px-6 py-8 text-center text-gray-500">No header menu items yet.</td>
                             </tr>
                         @endforelse
                     </tbody>

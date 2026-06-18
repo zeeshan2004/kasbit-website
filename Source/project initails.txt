@@ -1,0 +1,13 @@
+File management: Image validation, compression, WebP aur safe filenames.
+Performance: Caching, pagination, lazy loading, compressed assets aur optimized queries.
+SEO: Dynamic title, description, canonical URL, sitemap aur clean URLs.
+Form security: CSRF protection, server-side validation aur spam/rate limiting.
+Database security: Eloquent/prepared queries se SQL injection protection.
+XSS protection: User content escape/sanitize karna; uncontrolled {!! !!} se bachna.
+Session security: Secure/HTTP-only cookies, session expiry aur login regeneration.
+Route protection: Admin routes par auth aur permission middleware.
+Upload security: File type, MIME, size aur extension verify karna; executable files reject karna.
+Brute-force protection: Login attempt throttling aur zarurat par 2FA.
+Production security: HTTPS, debug mode off, .env private aur secure headers.
+Logging/backups: Error logs, admin activity/audit logs aur automatic database backups.
+Testing: Forms, permissions, mobile responsiveness, broken links aur security tests.

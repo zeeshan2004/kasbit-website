@@ -40,9 +40,70 @@
         }
         .chevron { transition: transform 0.3s ease; }
         .chevron.rotate { transform: rotate(180deg); }
+
+        .admin-field-error {
+            margin-top: .35rem;
+            color: #dc2626;
+            font-size: .75rem;
+            font-weight: 600;
+        }
+
+        #admin-toast {
+            position: fixed;
+            top: 1.25rem;
+            right: 1.25rem;
+            z-index: 9999;
+            max-width: min(26rem, calc(100vw - 2rem));
+            padding: .9rem 1.1rem;
+            border-radius: .75rem;
+            color: #fff;
+            font-size: .9rem;
+            font-weight: 600;
+            box-shadow: 0 16px 35px rgba(15, 23, 42, .24);
+            opacity: 0;
+            transform: translateY(-12px);
+            pointer-events: none;
+            transition: opacity .2s ease, transform .2s ease;
+        }
+
+        #admin-toast.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #admin-toast.is-success { background: #15803d; }
+        #admin-toast.is-error { background: #b91c1c; }
+
+        [data-admin-toggle] button {
+            transition: background-color .25s ease, box-shadow .25s ease, opacity .2s ease, transform .2s ease;
+        }
+
+        [data-admin-toggle] button span {
+            transition: transform .28s cubic-bezier(.22, 1, .36, 1), box-shadow .25s ease;
+        }
+
+        [data-admin-toggle].is-updating button {
+            opacity: .72;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, .13);
+            transform: scale(.96);
+        }
+
+        [data-admin-toggle].is-updating button span {
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, .38);
+        }
+
+        [data-admin-toggle].is-confirmed button {
+            animation: adminToggleConfirm .42s ease;
+        }
+
+        @keyframes adminToggleConfirm {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, .38); }
+            100% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans flex h-screen overflow-hidden">
+    <div id="admin-toast" role="status" aria-live="polite"></div>
 
     <!-- Sidebar Start -->
     <aside class="w-72 bg-kasbitDark text-gray-300 flex flex-col justify-between shadow-xl z-10 overflow-y-auto no-scrollbar">
@@ -76,6 +137,47 @@
                     <span class="text-xs uppercase text-gray-500 font-bold px-4 tracking-wider">Website Sections</span>
                 </div>
 
+                <div id="admin-website-sections" class="space-y-1">
+                    @forelse($adminWebsiteSections as $section)
+                        @php($sectionId = 'website-section-' . $section->id)
+                        <div>
+                            @if($section->children->count())
+                                <div class="flex items-center rounded-lg hover:bg-gray-800 transition">
+                                    <a href="{{ route('header-menu.page.edit', $section) }}"
+                                       class="min-w-0 flex-1 flex items-center space-x-3 px-4 py-3 hover:text-white">
+                                        <i class="{{ $section->icon ?: 'fa-solid fa-folder' }} w-5 text-center text-base text-kasbitGold"></i>
+                                        <span class="font-semibold text-kasbitGold">{{ $section->name }}</span>
+                                    </a>
+                                    <button type="button"
+                                            onclick="toggleDD('{{ $sectionId }}')"
+                                            class="flex items-center justify-center self-stretch px-4 text-gray-400 hover:text-white focus:outline-none"
+                                            aria-label="Open {{ $section->name }} subcategories">
+                                        <i id="chevron-{{ $sectionId }}" class="fa-solid fa-chevron-down text-xs chevron"></i>
+                                    </button>
+                                </div>
+                                <div id="dd-{{ $sectionId }}" class="dropdown-container bg-slate-900/50 rounded-lg mt-1 pl-4 pr-2 space-y-1">
+                                    @foreach($section->children as $child)
+                                        <a href="{{ route('header-menu.page.edit', $child) }}"
+                                           class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition">
+                                            <i class="{{ $child->icon ?: 'fa-solid fa-circle' }} w-4 text-center text-[10px]"></i>
+                                            <span>{{ $child->name }}</span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @else
+                                <a href="{{ route('header-menu.edit', $section) }}"
+                                   class="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 hover:text-white transition">
+                                    <i class="{{ $section->icon ?: 'fa-solid fa-folder' }} w-5 text-center text-base text-kasbitGold"></i>
+                                    <span class="font-semibold text-kasbitGold">{{ $section->name }}</span>
+                                </a>
+                            @endif
+                        </div>
+                    @empty
+                        <p class="px-4 py-3 text-xs text-gray-500">Enable sections from the Header Menu CMS.</p>
+                    @endforelse
+                </div>
+
+                @if(false)
                 <!-- PROGRAMS (LEVEL 1) -->
                 <div>
                     <button onclick="toggleDD('programs')"
@@ -357,6 +459,7 @@
                         <a href="#" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition"><i class="fa-solid fa-circle text-[4px]"></i><span>E Library Resources</span></a>
                     </div>
                 </div>
+                @endif
 
                 <div class="pt-4 pb-1 border-t border-gray-700 mt-3">
                     <span class="text-xs uppercase text-gray-500 font-bold px-4 tracking-wider">CMS Control</span>
@@ -487,6 +590,309 @@
                 parentMenu.style.maxHeight = '';
             }
         }
+
+        (() => {
+            const toast = document.getElementById('admin-toast');
+            let toastTimer;
+            let activeToggleRequests = 0;
+            let toggleSyncTimer;
+
+            const showToast = (message, type = 'success') => {
+                if (!toast) return;
+
+                window.clearTimeout(toastTimer);
+                toast.textContent = message;
+                toast.className = type === 'error'
+                    ? 'is-visible is-error'
+                    : 'is-visible is-success';
+
+                toastTimer = window.setTimeout(() => {
+                    toast.classList.remove('is-visible');
+                }, 3500);
+            };
+
+            const clearErrors = (form) => {
+                form.querySelectorAll('.admin-field-error').forEach((error) => error.remove());
+                form.querySelectorAll('[aria-invalid="true"]').forEach((field) => {
+                    field.removeAttribute('aria-invalid');
+                    field.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
+                });
+            };
+
+            const showErrors = (form, errors) => {
+                let firstInvalidField = null;
+
+                Object.entries(errors).forEach(([name, messages]) => {
+                    const bracketName = name
+                        .split('.')
+                        .reduce((result, part, index) => index === 0 ? part : result + '[' + part + ']', '');
+                    const field = form.elements.namedItem(name) || form.elements.namedItem(bracketName);
+                    const input = field instanceof RadioNodeList ? field[0] : field;
+
+                    if (!input) return;
+
+                    input.setAttribute('aria-invalid', 'true');
+                    input.classList.add('border-red-500', 'ring-1', 'ring-red-500');
+
+                    const error = document.createElement('p');
+                    error.className = 'admin-field-error';
+                    error.textContent = Array.isArray(messages) ? messages[0] : messages;
+                    input.closest('div')?.appendChild(error);
+                    firstInvalidField ??= input;
+                });
+
+                firstInvalidField?.focus();
+                firstInvalidField?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            };
+
+            const refreshMainContent = (html, responseUrl) => {
+                const parsed = new DOMParser().parseFromString(html, 'text/html');
+                const nextMain = parsed.querySelector('main');
+                const currentMain = document.querySelector('main');
+                const nextWebsiteSections = parsed.querySelector('#admin-website-sections');
+                const currentWebsiteSections = document.querySelector('#admin-website-sections');
+
+                if (!nextMain || !currentMain) {
+                    throw new Error('The updated admin content could not be loaded.');
+                }
+
+                currentMain.innerHTML = nextMain.innerHTML;
+
+                if (nextWebsiteSections && currentWebsiteSections) {
+                    currentWebsiteSections.innerHTML = nextWebsiteSections.innerHTML;
+                }
+
+                parsed.querySelectorAll('script[data-admin-page-script]').forEach((script) => {
+                    try {
+                        Function(script.textContent)();
+                    } catch (error) {
+                        console.error('Admin page script error:', error);
+                    }
+                });
+
+                if (responseUrl) {
+                    const url = new URL(responseUrl, window.location.origin);
+                    history.replaceState({}, '', url.pathname + url.search + url.hash);
+                }
+            };
+
+            const syncAdminContent = async (refreshUrl = window.location.href) => {
+                const main = document.querySelector('main');
+                const scrollPosition = main?.scrollTop ?? 0;
+                const url = new URL(refreshUrl, window.location.origin);
+                url.searchParams.set('_refresh', Date.now().toString());
+
+                const response = await fetch(url.href, {
+                    headers: {
+                        'Accept': 'text/html',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Admin content refresh failed with status ' + response.status);
+                }
+
+                refreshMainContent(await response.text(), refreshUrl);
+
+                const refreshedMain = document.querySelector('main');
+                if (refreshedMain) refreshedMain.scrollTop = scrollPosition;
+            };
+
+            const submitToggle = async (form, submitter) => {
+                if (form.dataset.requestPending === 'true') return;
+
+                form.dataset.requestPending = 'true';
+                activeToggleRequests++;
+                form.classList.remove('is-confirmed');
+                form.classList.add('is-updating');
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Toggle failed with status ' + response.status);
+                    }
+
+                    form.classList.add('is-confirmed');
+                } catch (error) {
+                    console.error(error);
+                    showToast('Status update failed. Please try again.', 'error');
+                } finally {
+                    delete form.dataset.requestPending;
+                    form.classList.remove('is-updating');
+                    activeToggleRequests--;
+
+                    window.clearTimeout(toggleSyncTimer);
+                    toggleSyncTimer = window.setTimeout(() => {
+                        if (activeToggleRequests === 0) {
+                            syncAdminContent();
+                        }
+                    }, 180);
+                }
+            };
+
+            document.addEventListener('submit', async (event) => {
+                const form = event.target;
+
+                if (!(form instanceof HTMLFormElement)
+                    || form.dataset.noAjax !== undefined
+                    || new URL(form.action, window.location.href).pathname === '/logout') {
+                    return;
+                }
+
+                event.preventDefault();
+
+                if (form.matches('[data-admin-toggle]')) {
+                    submitToggle(form, event.submitter);
+                    return;
+                }
+
+                clearErrors(form);
+
+                const submitter = event.submitter;
+                const originalHtml = submitter?.innerHTML;
+
+                if (submitter) {
+                    submitter.disabled = true;
+                    submitter.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-label="Loading"></i>';
+                }
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: (form.method || 'POST').toUpperCase(),
+                        body: new FormData(form),
+                        headers: {
+                            'Accept': 'application/json, text/html',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                    });
+
+                    if (response.status === 422) {
+                        const payload = await response.json();
+                        showErrors(form, payload.errors || {});
+                        showToast(payload.message || 'Please correct the highlighted fields.', 'error');
+                        return;
+                    }
+
+                    if (response.status === 401 || response.status === 419) {
+                        showToast('Your session expired. Please sign in again.', 'error');
+                        window.setTimeout(() => window.location.assign('{{ route('login') }}'), 1200);
+                        return;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error('Request failed with status ' + response.status);
+                    }
+
+                    const contentType = response.headers.get('content-type') || '';
+
+                    if (contentType.includes('application/json')) {
+                        const payload = await response.json();
+
+                        if (payload.refresh_url) {
+                            await syncAdminContent(payload.refresh_url);
+                        }
+
+                        showToast(payload.message || 'Changes saved successfully.');
+                        return;
+                    }
+
+                    const html = await response.text();
+                    refreshMainContent(html, response.url);
+                    showToast('Changes saved successfully.');
+                } catch (error) {
+                    console.error(error);
+                    showToast('Something went wrong. Please try again.', 'error');
+                } finally {
+                    if (submitter?.isConnected) {
+                        submitter.disabled = false;
+                        submitter.innerHTML = originalHtml;
+                    }
+                }
+            });
+
+            document.addEventListener('click', async (event) => {
+                const link = event.target.closest('a[href]');
+
+                if (!link
+                    || event.defaultPrevented
+                    || event.button !== 0
+                    || event.ctrlKey
+                    || event.metaKey
+                    || event.shiftKey
+                    || event.altKey
+                    || link.target === '_blank'
+                    || link.hasAttribute('download')
+                    || link.dataset.noAjax !== undefined) {
+                    return;
+                }
+
+                const url = new URL(link.href, window.location.href);
+
+                if (url.origin !== window.location.origin
+                    || !url.pathname.startsWith('/admin/')
+                    || url.pathname === '/admin/login'
+                    || (url.pathname === window.location.pathname
+                        && url.search === window.location.search
+                        && url.hash)) {
+                    return;
+                }
+
+                event.preventDefault();
+                link.classList.add('pointer-events-none', 'opacity-60');
+
+                try {
+                    const response = await fetch(url.href, {
+                        headers: {
+                            'Accept': 'text/html',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                    });
+
+                    if (response.status === 401 || response.status === 419) {
+                        window.location.assign('{{ route('login') }}');
+                        return;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error('Navigation failed with status ' + response.status);
+                    }
+
+                    const main = document.querySelector('main');
+                    const scrollPosition = main?.scrollTop ?? 0;
+
+                    refreshMainContent(await response.text(), response.url);
+
+                    if (main) {
+                        main.scrollTop = scrollPosition;
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast('Page could not be loaded. Please try again.', 'error');
+                } finally {
+                    if (link.isConnected) {
+                        link.classList.remove('pointer-events-none', 'opacity-60');
+                    }
+                }
+            });
+
+            window.addEventListener('popstate', () => {
+                window.location.reload();
+            });
+        })();
     </script>
 </body>
 </html>

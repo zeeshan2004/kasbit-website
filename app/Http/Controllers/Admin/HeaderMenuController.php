@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\HeaderMenu;
+use App\Models\HeaderMenuPage;
 use App\Models\HomePage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class HeaderMenuController extends Controller
 {
@@ -21,7 +23,8 @@ class HeaderMenuController extends Controller
 
     public function store(Request $request)
     {
-        HeaderMenu::create($this->validatedData($request));
+        $headerMenu = HeaderMenu::create($this->validatedData($request));
+        $this->syncPage($headerMenu);
 
         return redirect()->route('header-menu.index')->with('success', 'Header menu item added.');
     }
@@ -91,6 +94,7 @@ class HeaderMenuController extends Controller
     public function update(Request $request, HeaderMenu $headerMenu)
     {
         $headerMenu->update($this->validatedData($request));
+        $this->syncPage($headerMenu);
 
         return redirect()->route('header-menu.index')->with('success', 'Header menu item updated.');
     }
@@ -102,22 +106,141 @@ class HeaderMenuController extends Controller
         return redirect()->route('header-menu.index')->with('success', 'Header menu item deleted.');
     }
 
+    public function toggle(Request $request, HeaderMenu $headerMenu)
+    {
+        $data = $request->validate([
+            'field' => ['required', 'in:is_active,show_in_admin_sidebar'],
+        ]);
+
+        if ($data['field'] === 'show_in_admin_sidebar' && $headerMenu->parent_id) {
+            return back()->withErrors([
+                'show_in_admin_sidebar' => 'Subcategories are displayed with their parent section.',
+            ]);
+        }
+
+        $field = $data['field'];
+        $headerMenu->update([$field => !$headerMenu->{$field}]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Menu status updated.',
+                'field' => $field,
+                'value' => (bool) $headerMenu->{$field},
+            ]);
+        }
+
+        return redirect()->route('header-menu.index')->with('success', 'Menu status updated.');
+    }
+
     private function validatedData(Request $request): array
     {
         $data = $request->validate([
             'parent_id' => ['nullable', 'exists:header_menus,id'],
             'name' => ['required', 'string', 'max:255'],
             'link' => ['nullable', 'string', 'max:255'],
+            'icon' => ['nullable', 'string', 'in:' . implode(',', array_keys($this->availableIcons()))],
+            'show_in_admin_sidebar' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         $data['parent_id'] = $data['parent_id'] ?: null;
-        $data['link'] = $data['link'] ?: '#';
+        $data['link'] = $this->normalizeLink($data['link'] ?? null);
+        $data['icon'] = $data['icon'] ?: 'fa-solid fa-folder';
+        $data['show_in_admin_sidebar'] = empty($data['parent_id'])
+            && $request->boolean('show_in_admin_sidebar');
         $data['sort_order'] = $data['sort_order'] ?? 0;
         $data['is_active'] = $request->boolean('is_active');
 
         return $data;
+    }
+
+    public static function iconOptions(): array
+    {
+        return [
+            'fa-solid fa-circle-info' => 'About / Information',
+            'fa-solid fa-book-open' => 'Programs / Book',
+            'fa-solid fa-file-signature' => 'Admissions / Form',
+            'fa-solid fa-building-columns' => 'Academics / University',
+            'fa-solid fa-circle-nodes' => 'Life at KASBIT',
+            'fa-solid fa-shield-halved' => 'Quality / Shield',
+            'fa-solid fa-flask' => 'Research / Flask',
+            'fa-solid fa-right-to-bracket' => 'Login',
+            'fa-solid fa-user-graduate' => 'Alumni / Graduate',
+            'fa-solid fa-book' => 'Library',
+            'fa-solid fa-images' => 'Gallery',
+            'fa-solid fa-address-book' => 'Contact',
+            'fa-solid fa-message' => 'Message',
+            'fa-solid fa-globe' => 'International / Globe',
+            'fa-solid fa-users' => 'People / Users',
+            'fa-solid fa-calendar-days' => 'Calendar',
+            'fa-solid fa-graduation-cap' => 'Education / Graduate',
+            'fa-solid fa-laptop-code' => 'Computer / Technology',
+            'fa-solid fa-chart-line' => 'Results / Growth',
+            'fa-solid fa-landmark' => 'Institution / Landmark',
+            'fa-solid fa-link' => 'Link',
+            'fa-solid fa-circle' => 'Small Circle',
+            'fa-solid fa-folder' => 'General / Folder',
+        ];
+    }
+
+    private function availableIcons(): array
+    {
+        return self::iconOptions();
+    }
+
+    private function syncPage(HeaderMenu $headerMenu): void
+    {
+        if (!$headerMenu->parent_id) {
+            return;
+        }
+
+        $page = HeaderMenuPage::firstOrCreate(
+            ['header_menu_id' => $headerMenu->id],
+            [
+                'slug' => $this->uniquePageSlug($headerMenu),
+                'eyebrow' => $headerMenu->parent?->name,
+                'title' => $headerMenu->name,
+                'accent_color' => '#07559d',
+                'show_image' => true,
+            ]
+        );
+
+        if (!$page->wasRecentlyCreated && $page->title === '') {
+            $page->update(['title' => $headerMenu->name]);
+        }
+
+        $headerMenu->updateQuietly([
+            'link' => $headerMenu->name === 'About Us' ? '/about' : '/pages/' . $page->slug,
+        ]);
+    }
+
+    private function normalizeLink(?string $link): string
+    {
+        $link = trim((string) $link);
+
+        if ($link === '') {
+            return '#';
+        }
+
+        if (str_starts_with($link, '/')) {
+            $link = '/' . ltrim(preg_replace('/\s+/', '', $link), '/');
+        }
+
+        return $link;
+    }
+
+    private function uniquePageSlug(HeaderMenu $headerMenu): string
+    {
+        $base = Str::slug($headerMenu->name) ?: 'page-' . $headerMenu->id;
+        $slug = $base;
+        $suffix = 2;
+
+        while (HeaderMenuPage::where('slug', $slug)->exists()) {
+            $slug = $base . '-' . $suffix++;
+        }
+
+        return $slug;
     }
 
     private function deleteHeaderLogoFile(HomePage $home): void

@@ -23,6 +23,27 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        View::composer('components.admin-layout', function ($view) {
+            $adminWebsiteSections = collect();
+
+            if (Schema::hasTable('header_menus')
+                && Schema::hasColumn('header_menus', 'show_in_admin_sidebar')) {
+                $adminWebsiteSections = HeaderMenu::with(['children' => function ($query) {
+                    $query->where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->orderBy('name');
+                }])
+                    ->whereNull('parent_id')
+                    ->where('show_in_admin_sidebar', true)
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get();
+            }
+
+            $view->with('adminWebsiteSections', $adminWebsiteSections);
+        });
+
         View::composer('frontend.*', function ($view) {
             $headerMenus = collect();
 

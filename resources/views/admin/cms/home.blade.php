@@ -548,7 +548,7 @@
     </div>
 </x-admin-layout>
 
-<script>
+<script data-admin-page-script>
 let heroSlideIndex = 1;
 let newsItemIndex = 1;
 
