@@ -14,6 +14,8 @@ class HeaderMenuPage extends Model
         'subtitle',
         'content',
         'image',
+        'pdf_file',
+        'pdf_original_name',
         'accent_color',
         'show_image',
     ];
@@ -30,6 +32,13 @@ class HeaderMenuPage extends Model
     public function slides()
     {
         return $this->hasMany(HeaderMenuPageSlide::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public function programSchemaTables()
+    {
+        return $this->hasMany(ProgramSchemaTable::class)
             ->orderBy('sort_order')
             ->orderBy('id');
     }

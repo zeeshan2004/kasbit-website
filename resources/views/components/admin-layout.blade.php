@@ -74,6 +74,59 @@
         #admin-toast.is-success { background: #15803d; }
         #admin-toast.is-error { background: #b91c1c; }
 
+        #admin-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(248, 250, 252, .72);
+            backdrop-filter: blur(3px);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity .1s ease, visibility .1s ease;
+        }
+
+        #admin-loader.is-visible {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .admin-loader-spinner {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, .18);
+        }
+
+        .admin-loader-spinner::before {
+            position: absolute;
+            inset: 5px;
+            content: "";
+            border: 4px solid #dbeafe;
+            border-top-color: #0d47a1;
+            border-right-color: #f59e0b;
+            border-radius: 50%;
+            animation: adminLoaderSpin .72s linear infinite;
+        }
+
+        .admin-loader-spinner i {
+            color: #0d47a1;
+            font-size: 23px;
+        }
+
+        @keyframes adminLoaderSpin {
+            to { transform: rotate(360deg); }
+        }
+
         [data-admin-toggle] button {
             transition: background-color .25s ease, box-shadow .25s ease, opacity .2s ease, transform .2s ease;
         }
@@ -104,6 +157,11 @@
 </head>
 <body class="bg-gray-100 font-sans flex h-screen overflow-hidden">
     <div id="admin-toast" role="status" aria-live="polite"></div>
+    <div id="admin-loader" role="status" aria-live="polite" aria-label="Loading" aria-hidden="true">
+        <div class="admin-loader-spinner">
+            <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+        </div>
+    </div>
 
     <!-- Sidebar Start -->
     <aside class="w-72 bg-kasbitDark text-gray-300 flex flex-col justify-between shadow-xl z-10 overflow-y-auto no-scrollbar">
@@ -157,15 +215,40 @@
                                 </div>
                                 <div id="dd-{{ $sectionId }}" class="dropdown-container bg-slate-900/50 rounded-lg mt-1 pl-4 pr-2 space-y-1">
                                     @foreach($section->children as $child)
-                                        <a href="{{ route('header-menu.page.edit', $child) }}"
-                                           class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition">
-                                            <i class="{{ $child->icon ?: 'fa-solid fa-circle' }} w-4 text-center text-[10px]"></i>
-                                            <span>{{ $child->name }}</span>
-                                        </a>
+                                        @php($childSectionId = 'website-section-' . $child->id)
+                                        <div>
+                                            <div class="flex items-center rounded-md hover:bg-gray-800 transition">
+                                                <a href="{{ route('header-menu.page.edit', $child) }}"
+                                                   class="min-w-0 flex-1 flex items-center space-x-2 px-3 py-2 text-sm hover:text-white">
+                                                    <i class="{{ $child->icon ?: 'fa-solid fa-circle' }} w-4 text-center text-[10px]"></i>
+                                                    <span>{{ $child->name }}</span>
+                                                </a>
+                                                @if($child->children->count())
+                                                    <button type="button"
+                                                            onclick="toggleNestedDD('{{ $childSectionId }}', '{{ $sectionId }}')"
+                                                            class="self-stretch px-3 text-gray-500 hover:text-white"
+                                                            aria-label="Open {{ $child->name }} programs">
+                                                        <i id="chevron-{{ $childSectionId }}" class="fa-solid fa-chevron-down text-[9px] chevron"></i>
+                                                    </button>
+                                                @endif
+                                            </div>
+                                            @if($child->children->count())
+                                                <div id="dd-{{ $childSectionId }}" class="dropdown-container ml-4 border-l border-slate-700 pl-3">
+                                                    @foreach($child->children as $grandchild)
+                                                        <a href="{{ route('header-menu.page.edit', $grandchild) }}"
+                                                           data-admin-page-link
+                                                           class="flex items-center gap-2 px-2 py-2 text-xs rounded transition {{ request()->routeIs('header-menu.page.edit') && (int) request()->route('headerMenu')?->id === $grandchild->id ? 'bg-kasbitBlue text-white font-semibold' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">
+                                                            <i class="fa-solid fa-circle text-[5px]"></i>
+                                                            <span>{{ $grandchild->name }}</span>
+                                                        </a>
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                        </div>
                                     @endforeach
                                 </div>
                             @else
-                                <a href="{{ route('header-menu.edit', $section) }}"
+                                <a href="{{ strcasecmp($section->name, 'Home') === 0 ? route('home.cms.index') : route('header-menu.edit', $section) }}"
                                    class="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 hover:text-white transition">
                                     <i class="{{ $section->icon ?: 'fa-solid fa-folder' }} w-5 text-center text-base text-kasbitGold"></i>
                                     <span class="font-semibold text-kasbitGold">{{ $section->name }}</span>
@@ -476,7 +559,6 @@
                         <i id="chevron-cms-pages" class="fa-solid fa-chevron-down text-xs chevron text-gray-400"></i>
                     </button>
                     <div id="dd-cms-pages" class="dropdown-container bg-slate-900/50 rounded-lg mt-1 pl-4 pr-2 space-y-1">
-                        <a href="{{ route('home.cms.index') }}" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition"><i class="fa-solid fa-circle text-[4px]"></i><span>Home Page</span></a>
                         <a href="{{ route('header-menu.index') }}" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition"><i class="fa-solid fa-circle text-[4px]"></i><span>Header Menu</span></a>
                         <a href="{{ route('footer-cms.index') }}" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition"><i class="fa-solid fa-circle text-[4px]"></i><span>Footer CMS</span></a>
                         <a href="#" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition text-gray-400 cursor-not-allowed opacity-50"><i class="fa-solid fa-circle text-[4px]"></i><span>About Page (Coming Soon)</span></a>
@@ -507,7 +589,7 @@
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col overflow-hidden">
         <header class="h-16 bg-white border-b flex items-center justify-between px-6 shadow-sm">
-            <h2 class="text-xl font-semibold text-gray-800">{{ $header ?? 'Dashboard Overview' }}</h2>
+            <h2 id="admin-page-heading" class="text-xl font-semibold text-gray-800">{{ $header ?? 'Dashboard Overview' }}</h2>
             <div class="flex items-center space-x-2 border-l pl-4">
                 <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? 'Admin') }}&background=0d47a1&color=fff"
                      alt="User" class="w-8 h-8 rounded-full">
@@ -593,9 +675,36 @@
 
         (() => {
             const toast = document.getElementById('admin-toast');
+            const adminLoader = document.getElementById('admin-loader');
             let toastTimer;
             let activeToggleRequests = 0;
             let toggleSyncTimer;
+            let activeLoaderRequests = 0;
+            let adminLoaderTimer;
+
+            const showAdminLoader = () => {
+                activeLoaderRequests++;
+
+                if (activeLoaderRequests === 1) {
+                    window.clearTimeout(adminLoaderTimer);
+                    adminLoaderTimer = window.setTimeout(() => {
+                        if (activeLoaderRequests > 0) {
+                            adminLoader?.classList.add('is-visible');
+                            adminLoader?.setAttribute('aria-hidden', 'false');
+                        }
+                    }, 250);
+                }
+            };
+
+            const hideAdminLoader = () => {
+                activeLoaderRequests = Math.max(0, activeLoaderRequests - 1);
+
+                if (activeLoaderRequests === 0) {
+                    window.clearTimeout(adminLoaderTimer);
+                    adminLoader?.classList.remove('is-visible');
+                    adminLoader?.setAttribute('aria-hidden', 'true');
+                }
+            };
 
             const showToast = (message, type = 'success') => {
                 if (!toast) return;
@@ -645,12 +754,15 @@
                 firstInvalidField?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             };
 
-            const refreshMainContent = (html, responseUrl) => {
+            const refreshMainContent = (html, responseUrl, options = {}) => {
+                const { refreshSidebar = true, pushHistory = false } = options;
                 const parsed = new DOMParser().parseFromString(html, 'text/html');
                 const nextMain = parsed.querySelector('main');
                 const currentMain = document.querySelector('main');
                 const nextWebsiteSections = parsed.querySelector('#admin-website-sections');
                 const currentWebsiteSections = document.querySelector('#admin-website-sections');
+                const nextHeading = parsed.querySelector('#admin-page-heading');
+                const currentHeading = document.querySelector('#admin-page-heading');
 
                 if (!nextMain || !currentMain) {
                     throw new Error('The updated admin content could not be loaded.');
@@ -658,8 +770,12 @@
 
                 currentMain.innerHTML = nextMain.innerHTML;
 
-                if (nextWebsiteSections && currentWebsiteSections) {
+                if (refreshSidebar && nextWebsiteSections && currentWebsiteSections) {
                     currentWebsiteSections.innerHTML = nextWebsiteSections.innerHTML;
+                }
+
+                if (nextHeading && currentHeading) {
+                    currentHeading.textContent = nextHeading.textContent;
                 }
 
                 parsed.querySelectorAll('script[data-admin-page-script]').forEach((script) => {
@@ -672,7 +788,8 @@
 
                 if (responseUrl) {
                     const url = new URL(responseUrl, window.location.origin);
-                    history.replaceState({}, '', url.pathname + url.search + url.hash);
+                    const historyMethod = pushHistory ? 'pushState' : 'replaceState';
+                    history[historyMethod]({}, '', url.pathname + url.search + url.hash);
                 }
             };
 
@@ -768,6 +885,8 @@
                     submitter.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-label="Loading"></i>';
                 }
 
+                showAdminLoader();
+
                 try {
                     const response = await fetch(form.action, {
                         method: (form.method || 'POST').toUpperCase(),
@@ -816,6 +935,8 @@
                     console.error(error);
                     showToast('Something went wrong. Please try again.', 'error');
                 } finally {
+                    hideAdminLoader();
+
                     if (submitter?.isConnected) {
                         submitter.disabled = false;
                         submitter.innerHTML = originalHtml;
@@ -852,6 +973,7 @@
 
                 event.preventDefault();
                 link.classList.add('pointer-events-none', 'opacity-60');
+                showAdminLoader();
 
                 try {
                     const response = await fetch(url.href, {
@@ -874,15 +996,29 @@
                     const main = document.querySelector('main');
                     const scrollPosition = main?.scrollTop ?? 0;
 
-                    refreshMainContent(await response.text(), response.url);
+                    refreshMainContent(await response.text(), response.url, {
+                        refreshSidebar: false,
+                        pushHistory: true,
+                    });
 
-                    if (main) {
-                        main.scrollTop = scrollPosition;
-                    }
+                    const refreshedMain = document.querySelector('main');
+                    if (refreshedMain) refreshedMain.scrollTop = 0;
+
+                    document.querySelectorAll('[data-admin-page-link]').forEach((item) => {
+                        const itemUrl = new URL(item.href, window.location.origin);
+                        const isActive = itemUrl.pathname === new URL(response.url).pathname;
+
+                        item.classList.toggle('bg-kasbitBlue', isActive);
+                        item.classList.toggle('text-white', isActive);
+                        item.classList.toggle('font-semibold', isActive);
+                        item.classList.toggle('text-gray-400', !isActive);
+                    });
                 } catch (error) {
                     console.error(error);
                     showToast('Page could not be loaded. Please try again.', 'error');
                 } finally {
+                    hideAdminLoader();
+
                     if (link.isConnected) {
                         link.classList.remove('pointer-events-none', 'opacity-60');
                     }

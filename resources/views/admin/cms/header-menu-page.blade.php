@@ -54,6 +54,32 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Short Introduction</label>
                         <textarea name="subtitle" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg">{{ old('subtitle', $page->subtitle) }}</textarea>
                     </div>
+                    @if(in_array(strtolower($headerMenu->name), ['fee structure', 'program profile', 'admission policy'], true))
+                        <div class="md:col-span-2 rounded-xl border border-red-100 bg-red-50 p-5">
+                            <div class="flex flex-wrap items-start justify-between gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-800 mb-2">PDF File</label>
+                                    <input type="file"
+                                           name="pdf_file"
+                                           accept="application/pdf,.pdf"
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
+                                    <p class="mt-2 text-xs text-gray-500">PDF only, maximum file size 20MB.</p>
+                                </div>
+                                @if($page->pdf_file)
+                                    <div class="min-w-0 rounded-lg border border-red-200 bg-white px-4 py-3">
+                                        <p class="text-sm font-semibold text-gray-800 break-all">
+                                            <i class="fa-solid fa-file-pdf text-red-500 mr-2"></i>
+                                            {{ $page->pdf_original_name ?: basename($page->pdf_file) }}
+                                        </p>
+                                        <label class="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-red-600">
+                                            <input type="checkbox" name="remove_pdf" value="1">
+                                            Remove current PDF
+                                        </label>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </section>
 
@@ -194,6 +220,141 @@
                 @endforelse
             </div>
         </section>
+
+        @if($headerMenu->isDescendantOf('Programs') && strcasecmp($headerMenu->name, 'Programs') !== 0)
+            <section class="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+                <div class="flex items-center mb-5">
+                    <i class="fa-solid fa-table-list text-orange-500 text-xl mr-3"></i>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Program Schema Tables</h2>
+                        <p class="text-sm text-gray-500">Create multiple semester and subject tables for this program.</p>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Add Schema Table</h3>
+                <form method="POST"
+                      action="{{ route('program-schemas.store', $page) }}"
+                      data-program-schema-form
+                      class="mb-8 border border-gray-200 rounded-lg p-5 bg-gray-50">
+                    @csrf
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Table Title</label>
+                            <input type="text" name="title" placeholder="Semester I" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Display Order</label>
+                            <input type="number" name="sort_order" min="1" value="{{ ((int) $page->programSchemaTables->max('sort_order')) + 1 }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+
+                    <div data-schema-rows class="space-y-3">
+                        <div data-schema-row class="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 bg-white border border-gray-200 rounded-lg">
+                            <div class="md:col-span-7">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Subject / Label</label>
+                                <input type="text" name="rows[0][subject]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Credit Hours</label>
+                                <input type="text" name="rows[0][credit_hours]" placeholder="3 + 0" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            </div>
+                            <div class="md:col-span-2 flex items-end gap-3 pb-2">
+                                <label class="inline-flex items-center gap-2 text-xs font-semibold text-gray-700">
+                                    <input type="checkbox" name="rows[0][is_total]" value="1"> Bold row
+                                </label>
+                                <button type="button" data-remove-schema-row class="hidden text-red-500 hover:text-red-700" aria-label="Remove row">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" name="rows[0][sort_order]" value="0">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
+                        <button type="button" data-add-schema-row class="px-4 py-2 border border-orange-500 text-orange-600 rounded-lg hover:bg-orange-50 font-semibold">
+                            <i class="fa-solid fa-plus mr-2"></i>Add Subject Row
+                        </button>
+                        <div class="flex items-center gap-4">
+                            <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                <input type="checkbox" name="is_active" value="1" checked>
+                                Show on frontend
+                            </label>
+                            <button type="submit" class="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold">
+                                Save Schema Table
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Edit Schema Tables</h3>
+                <div class="space-y-6">
+                    @forelse($page->programSchemaTables as $schemaTable)
+                        <div class="border border-gray-200 rounded-lg p-5">
+                            <div class="flex items-center justify-between gap-3 mb-4">
+                                <h4 class="font-bold text-gray-800">{{ $schemaTable->title }}</h4>
+                                <span class="text-xs font-semibold text-gray-500">Table {{ $loop->iteration }}</span>
+                            </div>
+                            <form method="POST"
+                                  action="{{ route('program-schemas.update', $schemaTable) }}"
+                                  data-program-schema-form>
+                                @csrf
+                                @method('PUT')
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                                    <input type="text" name="title" value="{{ $schemaTable->title }}" required class="md:col-span-2 w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                    <input type="number" name="sort_order" min="1" value="{{ $schemaTable->sort_order }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" aria-label="Display Order">
+                                </div>
+
+                                <div data-schema-rows class="space-y-3">
+                                    @foreach($schemaTable->rows as $row)
+                                        <div data-schema-row class="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                            <input type="text" name="rows[{{ $loop->index }}][subject]" value="{{ $row->subject }}" required class="md:col-span-7 w-full px-3 py-2 border border-gray-300 rounded-lg" aria-label="Subject or label">
+                                            <input type="text" name="rows[{{ $loop->index }}][credit_hours]" value="{{ $row->credit_hours }}" placeholder="3 + 0" class="md:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                            <div class="md:col-span-2 flex items-center gap-3">
+                                                <label class="inline-flex items-center gap-2 text-xs font-semibold text-gray-700">
+                                                    <input type="checkbox" name="rows[{{ $loop->index }}][is_total]" value="1" @checked($row->is_total)> Bold row
+                                                </label>
+                                                <button type="button" data-remove-schema-row class="text-red-500 hover:text-red-700" aria-label="Remove row">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </div>
+                                            <input type="hidden" name="rows[{{ $loop->index }}][sort_order]" value="{{ $row->sort_order }}">
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
+                                    <button type="button" data-add-schema-row class="px-4 py-2 border border-orange-500 text-orange-600 rounded-lg hover:bg-orange-50 font-semibold">
+                                        <i class="fa-solid fa-plus mr-2"></i>Add Subject Row
+                                    </button>
+                                    <div class="flex items-center gap-4">
+                                        <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                            <input type="checkbox" name="is_active" value="1" @checked($schemaTable->is_active)>
+                                            Show on frontend
+                                        </label>
+                                        <button type="submit" class="px-5 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg font-semibold">
+                                            Update Table
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <form method="POST"
+                                  action="{{ route('program-schemas.destroy', $schemaTable) }}"
+                                  onsubmit="return confirm('Delete this schema table?')"
+                                  class="flex justify-end mt-3">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">Delete Table</button>
+                            </form>
+                        </div>
+                    @empty
+                        <div class="text-center text-gray-500 py-8 border border-dashed border-gray-300 rounded-lg">
+                            No program schema tables added yet.
+                        </div>
+                    @endforelse
+                </div>
+            </section>
+        @endif
     </div>
 </x-admin-layout>
 
@@ -230,6 +391,49 @@
     wrapper?.addEventListener('click', (event) => {
         const button = event.target.closest('.remove-page-slide');
         if (button) button.closest('.page-slide-field').remove();
+    });
+
+    document.querySelectorAll('[data-program-schema-form]').forEach((form) => {
+        const rows = form.querySelector('[data-schema-rows]');
+        const addButton = form.querySelector('[data-add-schema-row]');
+
+        addButton?.addEventListener('click', () => {
+            const source = rows?.querySelector('[data-schema-row]');
+            if (!source) return;
+
+            const row = source.cloneNode(true);
+            const index = rows.querySelectorAll('[data-schema-row]').length;
+
+            row.querySelectorAll('input').forEach((input) => {
+                input.name = input.name.replace(/rows\[\d+\]/, 'rows[' + index + ']');
+
+                if (input.type === 'checkbox') {
+                    input.checked = false;
+                } else if (input.type === 'hidden') {
+                    input.value = index;
+                } else {
+                    input.value = '';
+                }
+            });
+
+            row.querySelector('[data-remove-schema-row]')?.classList.remove('hidden');
+            rows.appendChild(row);
+        });
+
+        rows?.addEventListener('click', (event) => {
+            const removeButton = event.target.closest('[data-remove-schema-row]');
+            if (!removeButton || rows.querySelectorAll('[data-schema-row]').length === 1) return;
+            removeButton.closest('[data-schema-row]').remove();
+        });
+
+        form.addEventListener('submit', () => {
+            rows?.querySelectorAll('[data-schema-row]').forEach((row, index) => {
+                row.querySelectorAll('input[name^="rows["]').forEach((input) => {
+                    input.name = input.name.replace(/rows\[\d+\]/, 'rows[' + index + ']');
+                    if (input.type === 'hidden') input.value = index;
+                });
+            });
+        });
     });
 })();
 </script>

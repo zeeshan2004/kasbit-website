@@ -7,6 +7,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\Admin\HeaderMenuPageController;
 use App\Http\Controllers\Admin\HeaderMenuPageSlideController;
+use App\Http\Controllers\Admin\ProgramSchemaController;
 use App\Http\Controllers\Admin\HomeCmsController;
 use App\Http\Controllers\Admin\HeaderMenuController;
 use App\Http\Controllers\Admin\FooterCmsController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Admin\NewsItemController;
 Route::get('/', [HomeController::class, 'index']);
 Route::get('/about', [HomeController::class, 'about'])->name('about');
 Route::get('/pages/{page:slug}', [PageController::class, 'show'])->name('pages.show');
+Route::get('/pages/{page:slug}/download-pdf', [PageController::class, 'downloadPdf'])->name('pages.pdf.download');
 
 // Location Routes
 Route::get('/location/{id}', function ($id) {
@@ -72,6 +74,12 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
         ->name('header-menu-page-slides.update');
     Route::delete('/header-menu-page-slides/{slide}', [HeaderMenuPageSlideController::class, 'destroy'])
         ->name('header-menu-page-slides.destroy');
+    Route::post('/header-menu-pages/{page}/program-schemas', [ProgramSchemaController::class, 'store'])
+        ->name('program-schemas.store');
+    Route::put('/program-schemas/{schemaTable}', [ProgramSchemaController::class, 'update'])
+        ->name('program-schemas.update');
+    Route::delete('/program-schemas/{schemaTable}', [ProgramSchemaController::class, 'destroy'])
+        ->name('program-schemas.destroy');
 
     Route::resource('header-menu', HeaderMenuController::class)
         ->except(['create', 'show'])

@@ -65,6 +65,9 @@
                     || link.target === '_blank'
                     || link.hasAttribute('download')) return;
 
+                const rawHref = (link.getAttribute('href') || '').trim();
+                if (rawHref === '' || rawHref === '#') return;
+
                 const destination = new URL(link.href, window.location.href);
                 const samePageAnchor = destination.origin === window.location.origin
                     && destination.pathname === window.location.pathname

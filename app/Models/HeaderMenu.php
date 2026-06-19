@@ -31,6 +31,26 @@ class HeaderMenu extends Model
         return $this->hasMany(self::class, 'parent_id')->orderBy('sort_order')->orderBy('name');
     }
 
+    public function childrenRecursive()
+    {
+        return $this->children()->with('childrenRecursive');
+    }
+
+    public function isDescendantOf(string $name): bool
+    {
+        $menu = $this;
+
+        while ($menu) {
+            if (strcasecmp($menu->name, $name) === 0) {
+                return true;
+            }
+
+            $menu = $menu->parent;
+        }
+
+        return false;
+    }
+
     public function page()
     {
         return $this->hasOne(HeaderMenuPage::class);

@@ -28,11 +28,10 @@ class AppServiceProvider extends ServiceProvider
 
             if (Schema::hasTable('header_menus')
                 && Schema::hasColumn('header_menus', 'show_in_admin_sidebar')) {
-                $adminWebsiteSections = HeaderMenu::with(['children' => function ($query) {
-                    $query->where('is_active', true)
-                        ->orderBy('sort_order')
-                        ->orderBy('name');
-                }])
+                $adminWebsiteSections = HeaderMenu::with([
+                    'children' => fn ($query) => $query->where('is_active', true),
+                    'children.children' => fn ($query) => $query->where('is_active', true),
+                ])
                     ->whereNull('parent_id')
                     ->where('show_in_admin_sidebar', true)
                     ->where('is_active', true)
@@ -48,9 +47,10 @@ class AppServiceProvider extends ServiceProvider
             $headerMenus = collect();
 
             if (Schema::hasTable('header_menus')) {
-                $headerMenus = HeaderMenu::with(['children' => function ($query) {
-                    $query->where('is_active', true)->orderBy('sort_order')->orderBy('name');
-                }])
+                $headerMenus = HeaderMenu::with([
+                    'children' => fn ($query) => $query->where('is_active', true),
+                    'children.children' => fn ($query) => $query->where('is_active', true),
+                ])
                     ->whereNull('parent_id')
                     ->where('is_active', true)
                     ->orderBy('sort_order')

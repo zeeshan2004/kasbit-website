@@ -50,6 +50,8 @@ class HomePage extends Model
         'top_location_2_url',
         'top_location_3_name',
         'top_location_3_url',
+        'top_location_4_name',
+        'top_location_4_url',
         'header_facebook_url',
         'header_twitter_url',
         'header_instagram_url',

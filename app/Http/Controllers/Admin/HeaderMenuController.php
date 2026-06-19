@@ -14,8 +14,8 @@ class HeaderMenuController extends Controller
     public function index()
     {
         return view('admin.cms.header-menu', [
-            'menus' => HeaderMenu::with('children')->whereNull('parent_id')->orderBy('sort_order')->orderBy('name')->get(),
-            'parents' => HeaderMenu::whereNull('parent_id')->orderBy('sort_order')->orderBy('name')->get(),
+            'menus' => HeaderMenu::with('children.children')->whereNull('parent_id')->orderBy('sort_order')->orderBy('name')->get(),
+            'parents' => $this->availableParents(),
             'editMenu' => null,
             'home' => HomePage::first() ?? new HomePage(),
         ]);
@@ -24,7 +24,7 @@ class HeaderMenuController extends Controller
     public function store(Request $request)
     {
         $headerMenu = HeaderMenu::create($this->validatedData($request));
-        $this->syncPage($headerMenu);
+        $this->syncPage($headerMenu, true);
 
         return redirect()->route('header-menu.index')->with('success', 'Header menu item added.');
     }
@@ -32,8 +32,8 @@ class HeaderMenuController extends Controller
     public function edit(HeaderMenu $headerMenu)
     {
         return view('admin.cms.header-menu', [
-            'menus' => HeaderMenu::with('children')->whereNull('parent_id')->orderBy('sort_order')->orderBy('name')->get(),
-            'parents' => HeaderMenu::whereNull('parent_id')->where('id', '!=', $headerMenu->id)->orderBy('sort_order')->orderBy('name')->get(),
+            'menus' => HeaderMenu::with('children.children')->whereNull('parent_id')->orderBy('sort_order')->orderBy('name')->get(),
+            'parents' => $this->availableParents($headerMenu),
             'editMenu' => $headerMenu,
             'home' => HomePage::first() ?? new HomePage(),
         ]);
@@ -51,6 +51,8 @@ class HeaderMenuController extends Controller
             'top_location_2_url' => ['nullable', 'string', 'max:2048'],
             'top_location_3_name' => ['nullable', 'string', 'max:100'],
             'top_location_3_url' => ['nullable', 'string', 'max:2048'],
+            'top_location_4_name' => ['nullable', 'string', 'max:100'],
+            'top_location_4_url' => ['nullable', 'string', 'max:2048'],
             'header_facebook_url' => ['nullable', 'string', 'max:2048'],
             'header_twitter_url' => ['nullable', 'string', 'max:2048'],
             'header_instagram_url' => ['nullable', 'string', 'max:2048'],
@@ -82,6 +84,8 @@ class HeaderMenuController extends Controller
         $home->top_location_2_url = $request->input('top_location_2_url');
         $home->top_location_3_name = $request->input('top_location_3_name');
         $home->top_location_3_url = $request->input('top_location_3_url');
+        $home->top_location_4_name = $request->input('top_location_4_name');
+        $home->top_location_4_url = $request->input('top_location_4_url');
         $home->header_facebook_url = $request->input('header_facebook_url');
         $home->header_twitter_url = $request->input('header_twitter_url');
         $home->header_instagram_url = $request->input('header_instagram_url');
@@ -145,6 +149,11 @@ class HeaderMenuController extends Controller
         ]);
 
         $data['parent_id'] = $data['parent_id'] ?: null;
+
+        if ($data['parent_id']) {
+            $parent = HeaderMenu::findOrFail($data['parent_id']);
+            abort_if($parent->parent?->parent_id, 422, 'Only three menu levels are supported.');
+        }
         $data['link'] = $this->normalizeLink($data['link'] ?? null);
         $data['icon'] = $data['icon'] ?: 'fa-solid fa-folder';
         $data['show_in_admin_sidebar'] = empty($data['parent_id'])
@@ -189,7 +198,7 @@ class HeaderMenuController extends Controller
         return self::iconOptions();
     }
 
-    private function syncPage(HeaderMenu $headerMenu): void
+    private function syncPage(HeaderMenu $headerMenu, bool $assignDefaultLink = false): void
     {
         if (!$headerMenu->parent_id) {
             return;
@@ -199,7 +208,7 @@ class HeaderMenuController extends Controller
             ['header_menu_id' => $headerMenu->id],
             [
                 'slug' => $this->uniquePageSlug($headerMenu),
-                'eyebrow' => $headerMenu->parent?->name,
+                'eyebrow' => $headerMenu->parent?->parent?->name ?: $headerMenu->parent?->name,
                 'title' => $headerMenu->name,
                 'accent_color' => '#07559d',
                 'show_image' => true,
@@ -210,17 +219,21 @@ class HeaderMenuController extends Controller
             $page->update(['title' => $headerMenu->name]);
         }
 
-        $headerMenu->updateQuietly([
-            'link' => $headerMenu->name === 'About Us' ? '/about' : '/pages/' . $page->slug,
-        ]);
+        $currentLink = trim((string) $headerMenu->link);
+
+        if ($assignDefaultLink && ($currentLink === '' || $currentLink === '#')) {
+            $headerMenu->updateQuietly([
+                'link' => $headerMenu->name === 'About Us' ? '/about' : '/pages/' . $page->slug,
+            ]);
+        }
     }
 
-    private function normalizeLink(?string $link): string
+    private function normalizeLink(?string $link): ?string
     {
         $link = trim((string) $link);
 
-        if ($link === '') {
-            return '#';
+        if ($link === '' || $link === '#') {
+            return null;
         }
 
         if (str_starts_with($link, '/')) {
@@ -256,5 +269,35 @@ class HeaderMenuController extends Controller
         if (file_exists($path)) {
             unlink($path);
         }
+    }
+
+    private function availableParents(?HeaderMenu $editing = null)
+    {
+        return HeaderMenu::with('parent')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->reject(function (HeaderMenu $candidate) use ($editing) {
+                if ($candidate->parent?->parent_id) {
+                    return true;
+                }
+
+                if (!$editing) {
+                    return false;
+                }
+
+                $menu = $candidate;
+
+                while ($menu) {
+                    if ($menu->id === $editing->id) {
+                        return true;
+                    }
+
+                    $menu = $menu->parent;
+                }
+
+                return false;
+            })
+            ->values();
     }
 }

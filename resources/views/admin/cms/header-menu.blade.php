@@ -48,8 +48,8 @@
                 <div class="md:col-span-2 border-t border-gray-200 pt-5 mt-2">
                     <div class="flex items-center justify-between gap-4">
                         <div>
-                            <h3 class="text-lg font-bold text-gray-800">Top Header Bar</h3>
-                            <p class="text-sm text-gray-500">Campus links and social icons shown above the navbar.</p>
+                            <h3 class="text-lg font-bold text-gray-800">Top Header Items</h3>
+                            <p class="text-sm text-gray-500">Manage campus links, LMS and social icons shown above the main header.</p>
                         </div>
                         <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
                             <input type="checkbox" name="top_header_is_active" value="1" @checked(old('top_header_is_active', $home->exists ? $home->top_header_is_active : true))>
@@ -58,13 +58,13 @@
                     </div>
                 </div>
 
-                @foreach([1, 2, 3] as $index)
+                @foreach([1, 2, 3, 4] as $index)
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Campus {{ $index }} Name</label>
-                        <input type="text" name="top_location_{{ $index }}_name" value="{{ old("top_location_{$index}_name", $home->{"top_location_{$index}_name"} ?? '') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent" placeholder="{{ ['SMCHS', 'HYDERI', 'GULSHAN'][$index - 1] }}">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Top Item {{ $index }} Name</label>
+                        <input type="text" name="top_location_{{ $index }}_name" value="{{ old("top_location_{$index}_name", $home->{"top_location_{$index}_name"} ?? '') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent" placeholder="{{ ['SMCHS', 'HYDERI', 'GULSHAN', 'LMS'][$index - 1] }}">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Campus {{ $index }} Link</label>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Top Item {{ $index }} Link</label>
                         <input type="text" name="top_location_{{ $index }}_url" value="{{ old("top_location_{$index}_url", $home->{"top_location_{$index}_url"} ?? '') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent" placeholder="Google Maps or page URL">
                     </div>
                 @endforeach
@@ -129,7 +129,7 @@
                         <option value="">Top Level Menu</option>
                         @foreach($parents as $parent)
                             <option value="{{ $parent->id }}" @selected((string) old('parent_id', $editMenu->parent_id ?? '') === (string) $parent->id)>
-                                {{ $parent->name }}
+                                {{ $parent->parent ? $parent->parent->name . ' → ' : '' }}{{ $parent->name }}
                             </option>
                         @endforeach
                     </select>
@@ -149,7 +149,7 @@
                             </option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-xs text-gray-500">Icon Website Sections menu mein nazar aayega.</p>
+                    <p class="mt-1 text-xs text-gray-500">This icon appears in the Admin Website Sections menu.</p>
                 </div>
 
                 <div class="rounded-lg border border-indigo-100 bg-indigo-50 p-4">
@@ -161,7 +161,7 @@
                                @checked(old('show_in_admin_sidebar', $editMenu->show_in_admin_sidebar ?? false))>
                         <span>
                             <strong class="block text-sm text-gray-800">Show in Admin Website Sections</strong>
-                            <span class="block text-xs text-gray-500 mt-1">Top-level item aur uski subcategories sidebar mein show hongi.</span>
+                            <span class="block text-xs text-gray-500 mt-1">The top-level item and its subcategories will appear in the admin sidebar.</span>
                         </span>
                     </label>
                 </div>
@@ -199,7 +199,7 @@
                     </thead>
                     <tbody>
                         @forelse($menus as $menu)
-                            <tr class="border-b">
+                            <tr class="border-b align-middle">
                                 <td class="px-6 py-4 font-semibold text-gray-900">{{ $menu->name }}</td>
                                 <td class="px-6 py-4 text-gray-700">{{ $menu->link }}</td>
                                 <td class="px-6 py-4">{{ $menu->sort_order }}</td>
@@ -237,10 +237,15 @@
                                     </form>
                                 </td>
                             </tr>
-                            @foreach($menu->children as $child)
-                                <tr class="border-b bg-gray-50">
-                                    <td class="px-6 py-4 pl-12 text-gray-800">- {{ $child->name }}</td>
-                                    <td class="px-6 py-4 text-gray-700">{{ $child->link }}</td>
+                                    @foreach($menu->children as $child)
+                                <tr class="border-b bg-gray-50 align-middle">
+                                    <td class="px-6 py-4 pl-10 text-gray-800">
+                                        <span class="inline-flex items-start gap-2">
+                                            <span class="mt-2 h-px w-4 shrink-0 bg-gray-400"></span>
+                                            <span>{{ $child->name }}</span>
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-700 break-words">{{ $child->link }}</td>
                                     <td class="px-6 py-4">{{ $child->sort_order }}</td>
                                     <td class="px-6 py-4 text-gray-500">
                                         <i class="{{ $child->icon ?: 'fa-solid fa-circle' }} mr-2"></i>With parent
@@ -267,8 +272,45 @@
                                             </button>
                                         </form>
                                     </td>
-                                </tr>
-                            @endforeach
+                                        </tr>
+                                        @foreach($child->children as $grandchild)
+                                            <tr class="border-b bg-blue-50/50 align-middle">
+                                                <td class="px-6 py-4 pl-16 text-gray-700">
+                                                    <span class="inline-flex items-start gap-2">
+                                                        <span class="mt-2 h-px w-5 shrink-0 bg-blue-300"></span>
+                                                        <span>{{ $grandchild->name }}</span>
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4 text-gray-700 break-words">{{ $grandchild->link }}</td>
+                                                <td class="px-6 py-4">{{ $grandchild->sort_order }}</td>
+                                                <td class="px-6 py-4 text-blue-600">
+                                                    <i class="fa-solid fa-code-branch mr-2"></i>Under {{ $child->name }}
+                                                </td>
+                                                <td class="px-6 py-4">
+                                                    <form method="POST" action="{{ route('header-menu.toggle', $grandchild) }}" data-admin-toggle>
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <input type="hidden" name="field" value="is_active">
+                                                        <button type="submit" class="relative inline-flex h-6 w-11 items-center rounded-full transition {{ $grandchild->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}" title="Toggle frontend status">
+                                                            <span class="inline-block h-4 w-4 transform rounded-full bg-white transition {{ $grandchild->is_active ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                                <td class="px-6 py-4 flex gap-2">
+                                                    <a href="{{ route('header-menu.edit', $grandchild) }}" class="px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg">
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                    </a>
+                                                    <form method="POST" action="{{ route('header-menu.destroy', $grandchild) }}" onsubmit="return confirm('Delete this program item?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button class="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">
+                                                            <i class="fa-solid fa-trash-can"></i>
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @endforeach
                         @empty
                             <tr>
                                 <td colspan="6" class="px-6 py-8 text-center text-gray-500">No header menu items yet.</td>

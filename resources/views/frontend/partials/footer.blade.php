@@ -51,7 +51,10 @@
                                 <div class="site-footer-gallery">
                                     @foreach($footerGallery as $image)
                                         <a href="{{ asset($image) }}" target="_blank" rel="noopener noreferrer">
-                                            <img src="{{ asset($image) }}" alt="KASBIT gallery image">
+                                            <img src="{{ asset($image) }}"
+                                                 alt="KASBIT gallery image"
+                                                 loading="lazy"
+                                                 decoding="async">
                                         </a>
                                     @endforeach
                                 </div>

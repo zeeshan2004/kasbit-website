@@ -1,6 +1,6 @@
 @if(($home->top_header_is_active ?? false))
     @php
-        $topLocations = collect([1, 2, 3])->map(fn ($index) => [
+        $topLocations = collect([1, 2, 3, 4])->map(fn ($index) => [
             'name' => $home->{"top_location_{$index}_name"} ?? null,
             'url' => $home->{"top_location_{$index}_url"} ?? null,
         ])->filter(fn ($location) => filled($location['name']));
@@ -157,27 +157,61 @@
                                 @endphp
                                 @if($hasPageLink)
                                     <div class="nav-split-link">
-                                        <a class="nav-link" href="{{ $menuLink }}">
+                                        <a class="nav-link nav-primary-page-link" href="{{ $menuLink }}">
                                             {{ $menu->name }}
                                         </a>
                                         <button type="button"
-                                                class="nav-dropdown-trigger dropdown-toggle"
-                                                data-bs-toggle="dropdown"
+                                                class="nav-dropdown-trigger dropdown-toggle responsive-dropdown-trigger"
+                                                data-split-dropdown-toggle
                                                 aria-expanded="false"
-                                                aria-label="Open {{ $menu->name }} menu"></button>
+                                                aria-label="Open {{ $menu->name }} menu">
+                                            <span class="responsive-dropdown-label">{{ $menu->name }}</span>
+                                        </button>
                                     </div>
                                 @else
-                                    <a class="nav-link dropdown-toggle" href="{{ $menu->link ?: '#' }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button type="button" class="nav-link dropdown-toggle nav-link-button" data-bs-toggle="dropdown" aria-expanded="false">
                                         {{ $menu->name }}
-                                    </a>
+                                    </button>
                                 @endif
-                                <ul class="dropdown-menu">
+                                <ul class="dropdown-menu {{ $menu->name === 'Programs' ? 'programs-dropdown-menu' : '' }}">
                                     @foreach($menu->children->where('is_active', true) as $child)
-                                        <li>
-                                            <a class="dropdown-item"
-                                               href="{{ $child->name === 'About Us' ? route('about', [], false) : ($child->link ?: '#') }}">
-                                                {{ $child->name }}
-                                            </a>
+                                        @php($activeGrandchildren = $child->children->where('is_active', true))
+                                        <li class="{{ $activeGrandchildren->count() ? 'program-menu-group' : '' }}">
+                                            <?php
+                                                $childLink = $child->name === 'About Us'
+                                                    ? route('about', [], false)
+                                                    : trim((string) $child->link);
+                                                $childHasLink = $childLink !== '' && $childLink !== '#';
+                                            ?>
+                                            @if($childHasLink)
+                                                <a class="dropdown-item" href="{{ $childLink }}">
+                                                    {{ $child->name }}
+                                                    @if($activeGrandchildren->count())
+                                                        <i class="fa-solid fa-chevron-right program-menu-arrow"></i>
+                                                    @endif
+                                                </a>
+                                            @else
+                                                <button type="button" class="dropdown-item program-group-label">
+                                                    {{ $child->name }}
+                                                    @if($activeGrandchildren->count())
+                                                        <i class="fa-solid fa-chevron-right program-menu-arrow"></i>
+                                                    @endif
+                                                </button>
+                                            @endif
+                                            @if($activeGrandchildren->count())
+                                                <button type="button" class="program-submenu-toggle" aria-label="Open {{ $child->name }} programs" aria-expanded="false">
+                                                    <i class="fa-solid fa-chevron-down"></i>
+                                                </button>
+                                                <ul class="program-submenu">
+                                                    @foreach($activeGrandchildren as $grandchild)
+                                                        <li>
+                                                            <a class="dropdown-item" href="{{ $grandchild->link ?: '#' }}">
+                                                                {{ $grandchild->name }}
+                                                            </a>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            @endif
                                         </li>
                                     @endforeach
                                 </ul>
@@ -229,6 +263,48 @@
             (() => {
                 const navbar = document.querySelector('.header-navbar');
                 const collapse = navbar?.querySelector('.navbar-collapse');
+
+                document.querySelectorAll('.program-submenu-toggle').forEach((button) => {
+                    button.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        const group = button.closest('.program-menu-group');
+                        const isOpen = group?.classList.toggle('is-open') ?? false;
+                        button.setAttribute('aria-expanded', String(isOpen));
+                    });
+                });
+
+                document.querySelectorAll('[data-split-dropdown-toggle]').forEach((button) => {
+                    button.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        const dropdown = button.closest('.dropdown');
+                        const menu = dropdown?.querySelector(':scope > .dropdown-menu');
+                        if (!menu) return;
+
+                        const willOpen = !menu.classList.contains('show');
+
+                        document.querySelectorAll('[data-split-dropdown-toggle]').forEach((otherButton) => {
+                            const otherMenu = otherButton.closest('.dropdown')?.querySelector(':scope > .dropdown-menu');
+                            otherMenu?.classList.remove('show');
+                            otherButton.setAttribute('aria-expanded', 'false');
+                        });
+
+                        menu.classList.toggle('show', willOpen);
+                        button.setAttribute('aria-expanded', String(willOpen));
+                    });
+                });
+
+                document.addEventListener('click', (event) => {
+                    if (event.target.closest('.nav-split-link, .nav-split-link + .dropdown-menu')) return;
+
+                    document.querySelectorAll('[data-split-dropdown-toggle]').forEach((button) => {
+                        button.closest('.dropdown')?.querySelector(':scope > .dropdown-menu')?.classList.remove('show');
+                        button.setAttribute('aria-expanded', 'false');
+                    });
+                });
 
                 if (!navbar || !collapse || typeof ResizeObserver === 'undefined') return;
 
