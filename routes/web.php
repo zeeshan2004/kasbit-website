@@ -12,10 +12,34 @@ use App\Http\Controllers\Admin\HomeCmsController;
 use App\Http\Controllers\Admin\HeaderMenuController;
 use App\Http\Controllers\Admin\FooterCmsController;
 use App\Http\Controllers\Admin\NewsItemController;
+use App\Http\Controllers\Admin\AcademicCalendarController;
+use App\Http\Controllers\Admin\AcademicDepartmentController;
+use App\Http\Controllers\Admin\PageGalleryController;
+
+
+
+Route::get('/clear-cache', function () {
+
+    Artisan::call('optimize:clear');
+    Artisan::call('config:cache');
+    Artisan::call('route:cache');
+    Artisan::call('view:cache');
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Cache cleared successfully.'
+    ]);
+});
+
+
 Route::get('/', [HomeController::class, 'index']);
 Route::get('/about', [HomeController::class, 'about'])->name('about');
 Route::get('/pages/{page:slug}', [PageController::class, 'show'])->name('pages.show');
 Route::get('/pages/{page:slug}/download-pdf', [PageController::class, 'downloadPdf'])->name('pages.pdf.download');
+
+
+
+
 
 // Location Routes
 Route::get('/location/{id}', function ($id) {
@@ -80,6 +104,26 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
         ->name('program-schemas.update');
     Route::delete('/program-schemas/{schemaTable}', [ProgramSchemaController::class, 'destroy'])
         ->name('program-schemas.destroy');
+    Route::post('/header-menu-pages/{page}/academic-calendar-tables', [AcademicCalendarController::class, 'store'])
+        ->name('academic-calendar-tables.store');
+    Route::put('/academic-calendar-tables/{calendarTable}', [AcademicCalendarController::class, 'update'])
+        ->name('academic-calendar-tables.update');
+    Route::delete('/academic-calendar-tables/{calendarTable}', [AcademicCalendarController::class, 'destroy'])
+        ->name('academic-calendar-tables.destroy');
+
+    Route::post('/header-menu-pages/{page}/departments', [AcademicDepartmentController::class, 'store'])
+        ->name('departments.store');
+    Route::put('/departments/{department}', [AcademicDepartmentController::class, 'update'])
+        ->name('departments.update');
+    Route::delete('/departments/{department}', [AcademicDepartmentController::class, 'destroy'])
+        ->name('departments.destroy');
+
+    Route::post('/header-menu-pages/{page}/gallery', [PageGalleryController::class, 'store'])
+        ->name('page-gallery.store');
+    Route::put('/page-gallery/{galleryImage}', [PageGalleryController::class, 'update'])
+        ->name('page-gallery.update');
+    Route::delete('/page-gallery/{galleryImage}', [PageGalleryController::class, 'destroy'])
+        ->name('page-gallery.destroy');
 
     Route::resource('header-menu', HeaderMenuController::class)
         ->except(['create', 'show'])

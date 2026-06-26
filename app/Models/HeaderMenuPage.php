@@ -42,4 +42,32 @@ class HeaderMenuPage extends Model
             ->orderBy('sort_order')
             ->orderBy('id');
     }
+
+    public function academicCalendarTables()
+    {
+        return $this->hasMany(AcademicCalendarTable::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public function departments()
+    {
+        return $this->hasMany(AcademicDepartment::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public function galleryImages()
+    {
+        return $this->hasMany(PageGalleryImage::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public function eventAlbums()
+    {
+        return $this->hasMany(EventAlbum::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
 }

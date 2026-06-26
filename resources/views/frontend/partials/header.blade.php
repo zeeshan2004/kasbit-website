@@ -154,6 +154,9 @@
                                 @php
                                     $menuLink = trim((string) $menu->link);
                                     $hasPageLink = $menuLink !== '' && $menuLink !== '#';
+                                    $hasFlyoutSubmenu = $menu->children->where('is_active', true)
+                                        ->filter(fn ($child) => $child->children->where('is_active', true)->count())
+                                        ->isNotEmpty();
                                 @endphp
                                 @if($hasPageLink)
                                     <div class="nav-split-link">
@@ -173,7 +176,7 @@
                                         {{ $menu->name }}
                                     </button>
                                 @endif
-                                <ul class="dropdown-menu {{ $menu->name === 'Programs' ? 'programs-dropdown-menu' : '' }}">
+                                <ul class="dropdown-menu {{ $menu->name === 'Programs' ? 'programs-dropdown-menu' : '' }} {{ $hasFlyoutSubmenu ? 'has-flyout-submenu' : '' }}">
                                     @foreach($menu->children->where('is_active', true) as $child)
                                         @php($activeGrandchildren = $child->children->where('is_active', true))
                                         <li class="{{ $activeGrandchildren->count() ? 'program-menu-group' : '' }}">
@@ -183,25 +186,17 @@
                                                     : trim((string) $child->link);
                                                 $childHasLink = $childLink !== '' && $childLink !== '#';
                                             ?>
-                                            @if($childHasLink)
-                                                <a class="dropdown-item" href="{{ $childLink }}">
-                                                    {{ $child->name }}
-                                                    @if($activeGrandchildren->count())
-                                                        <i class="fa-solid fa-chevron-right program-menu-arrow"></i>
-                                                    @endif
-                                                </a>
-                                            @else
-                                                <button type="button" class="dropdown-item program-group-label">
-                                                    {{ $child->name }}
-                                                    @if($activeGrandchildren->count())
-                                                        <i class="fa-solid fa-chevron-right program-menu-arrow"></i>
-                                                    @endif
-                                                </button>
-                                            @endif
                                             @if($activeGrandchildren->count())
-                                                <button type="button" class="program-submenu-toggle" aria-label="Open {{ $child->name }} programs" aria-expanded="false">
-                                                    <i class="fa-solid fa-chevron-down"></i>
-                                                </button>
+                                                <div class="program-menu-row">
+                                                    @if($childHasLink)
+                                                        <a class="dropdown-item program-menu-link" href="{{ $childLink }}">{{ $child->name }}</a>
+                                                    @else
+                                                        <button type="button" class="dropdown-item program-menu-link program-group-label">{{ $child->name }}</button>
+                                                    @endif
+                                                    <button type="button" class="program-submenu-toggle" aria-label="Open {{ $child->name }} menu" aria-expanded="false">
+                                                        <i class="fa-solid fa-chevron-right"></i>
+                                                    </button>
+                                                </div>
                                                 <ul class="program-submenu">
                                                     @foreach($activeGrandchildren as $grandchild)
                                                         <li>
@@ -211,6 +206,12 @@
                                                         </li>
                                                     @endforeach
                                                 </ul>
+                                            @else
+                                                @if($childHasLink)
+                                                    <a class="dropdown-item" href="{{ $childLink }}">{{ $child->name }}</a>
+                                                @else
+                                                    <button type="button" class="dropdown-item program-group-label">{{ $child->name }}</button>
+                                                @endif
                                             @endif
                                         </li>
                                     @endforeach
@@ -227,26 +228,6 @@
                 </ul>
 
                 <div class="header-actions d-flex align-items-center gap-2">
-                    @if($home->header_phone ?? false)
-                        <div class="dropdown">
-                            <button type="button"
-                                    class="header-contact-action"
-                                    data-bs-toggle="dropdown"
-                                    data-bs-display="static"
-                                    aria-expanded="false"
-                                    aria-label="Show contact details">
-                                <i class="fa-solid fa-phone"></i>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end header-contact-menu">
-                                <span class="header-contact-label">Contact Number</span>
-                                <strong>{{ $home->header_phone }}</strong>
-                                @if($home->header_email ?? false)
-                                    <span class="header-contact-label mt-3">Email Address</span>
-                                    <span>{{ $home->header_email }}</span>
-                                @endif
-                            </div>
-                        </div>
-                    @endif
                     <a href="#" class="header-cta">
                         <span>Apply Now</span>
                         <i class="fa-solid fa-arrow-right"></i>
@@ -270,8 +251,33 @@
                         event.stopPropagation();
 
                         const group = button.closest('.program-menu-group');
-                        const isOpen = group?.classList.toggle('is-open') ?? false;
-                        button.setAttribute('aria-expanded', String(isOpen));
+                        if (!group) return;
+
+                        const willOpen = !group.classList.contains('is-open');
+
+                        // Close other open groups within the same dropdown.
+                        group.closest('.dropdown-menu')
+                            ?.querySelectorAll('.program-menu-group.is-open')
+                            .forEach((other) => {
+                                if (other !== group) {
+                                    other.classList.remove('is-open');
+                                    other.querySelector('.program-submenu-toggle')
+                                        ?.setAttribute('aria-expanded', 'false');
+                                }
+                            });
+
+                        group.classList.toggle('is-open', willOpen);
+                        button.setAttribute('aria-expanded', String(willOpen));
+                    });
+                });
+
+                document.addEventListener('click', (event) => {
+                    if (event.target.closest('.program-menu-group')) return;
+
+                    document.querySelectorAll('.program-menu-group.is-open').forEach((group) => {
+                        group.classList.remove('is-open');
+                        group.querySelector('.program-submenu-toggle')
+                            ?.setAttribute('aria-expanded', 'false');
                     });
                 });
 
@@ -305,6 +311,33 @@
                         button.setAttribute('aria-expanded', 'false');
                     });
                 });
+
+                if (navbar) {
+                    const navDropdowns = navbar.querySelectorAll('.header-nav .nav-item.dropdown');
+
+                    navDropdowns.forEach((item) => {
+                        item.addEventListener('mouseenter', () => {
+                            if (window.innerWidth < 1400 || navbar.classList.contains('header-force-collapse')) return;
+
+                            navDropdowns.forEach((other) => {
+                                if (other === item) return;
+
+                                const openMenu = other.querySelector(':scope > .dropdown-menu.show');
+                                if (!openMenu) return;
+
+                                const bsToggle = other.querySelector('[data-bs-toggle="dropdown"]');
+                                if (bsToggle && window.bootstrap?.Dropdown) {
+                                    window.bootstrap.Dropdown.getOrCreateInstance(bsToggle).hide();
+                                } else {
+                                    openMenu.classList.remove('show');
+                                }
+
+                                other.querySelectorAll('[aria-expanded="true"]')
+                                    .forEach((toggle) => toggle.setAttribute('aria-expanded', 'false'));
+                            });
+                        });
+                    });
+                }
 
                 if (!navbar || !collapse || typeof ResizeObserver === 'undefined') return;
 

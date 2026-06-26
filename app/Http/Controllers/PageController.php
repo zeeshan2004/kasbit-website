@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\EventAlbum;
 use App\Models\HeaderMenuPage;
 use App\Models\HomePage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -16,6 +17,11 @@ class PageController extends Controller
             'programSchemaTables' => fn ($query) => $query
                 ->where('is_active', true)
                 ->with('rows'),
+            'academicCalendarTables' => fn ($query) => $query
+                ->where('is_active', true)
+                ->with('rows'),
+            'departments' => fn ($query) => $query->where('is_active', true),
+            'galleryImages' => fn ($query) => $query->where('is_active', true),
         ]);
 
         return view('frontend.dynamic-page', [

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\HomePage;
 use App\Models\HeroSlide;
 use App\Models\NewsItem;
+use App\Support\WebpImageOptimizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 
@@ -38,8 +39,11 @@ class HomeCmsController extends Controller
 
             foreach ($request->input('slides', []) as $index => $slideData) {
                 $file = $request->file("slides.{$index}.image");
-                $name = time() . '_' . $index . '_hero_slide.' . $file->extension();
-                $file->move(public_path('uploads/hero-slides'), $name);
+                $name = basename(app(WebpImageOptimizer::class)->store(
+                    $file,
+                    'uploads/hero-slides',
+                    time() . '_' . $index . '_hero_slide'
+                ));
 
                 HeroSlide::create([
                     'title' => $slideData['title'] ?? null,
@@ -66,9 +70,11 @@ class HomeCmsController extends Controller
         ]);
 
         $file = $request->file('image');
-        $name = time() . '_hero_slide.' . $file->extension();
-        File::ensureDirectoryExists(public_path('uploads/hero-slides'));
-        $file->move(public_path('uploads/hero-slides'), $name);
+        $name = basename(app(WebpImageOptimizer::class)->store(
+            $file,
+            'uploads/hero-slides',
+            time() . '_hero_slide'
+        ));
 
         $data['image'] = $name;
         $data['button_link'] = ($data['button_link'] ?? null) ?: '#';
@@ -94,11 +100,11 @@ class HomeCmsController extends Controller
                 unlink(public_path($home->news_bg));
             }
 
-            File::ensureDirectoryExists(public_path('uploads/home'));
-            $file = $request->file('news_bg');
-            $name = time() . '_news.' . $file->extension();
-            $file->move(public_path('uploads/home'), $name);
-            $home->news_bg = 'uploads/home/' . $name;
+            $home->news_bg = app(WebpImageOptimizer::class)->store(
+                $request->file('news_bg'),
+                'uploads/home',
+                time() . '_news'
+            );
         } elseif ($request->boolean('delete_news_bg')) {
             if ($home->news_bg && file_exists(public_path($home->news_bg))) {
                 unlink(public_path($home->news_bg));
@@ -147,10 +153,11 @@ class HomeCmsController extends Controller
 
         if ($request->hasFile('video_tour_poster')) {
             $this->deletePublicFile($home->video_tour_poster);
-            $poster = $request->file('video_tour_poster');
-            $name = time() . '_kasbit_tour_poster.' . $poster->extension();
-            $poster->move(public_path('uploads/video-tour'), $name);
-            $home->video_tour_poster = 'uploads/video-tour/' . $name;
+            $home->video_tour_poster = app(WebpImageOptimizer::class)->store(
+                $request->file('video_tour_poster'),
+                'uploads/video-tour',
+                time() . '_kasbit_tour_poster'
+            );
         } elseif ($request->boolean('delete_video_tour_poster')) {
             $this->deletePublicFile($home->video_tour_poster);
             $home->video_tour_poster = null;
@@ -179,11 +186,11 @@ class HomeCmsController extends Controller
         if ($request->hasFile('image')) {
             $this->deleteHeroSlideImage($heroSlide);
 
-            $file = $request->file('image');
-            $name = time() . '_hero_slide.' . $file->extension();
-            File::ensureDirectoryExists(public_path('uploads/hero-slides'));
-            $file->move(public_path('uploads/hero-slides'), $name);
-            $data['image'] = $name;
+            $data['image'] = basename(app(WebpImageOptimizer::class)->store(
+                $request->file('image'),
+                'uploads/hero-slides',
+                time() . '_hero_slide'
+            ));
         }
 
         $data['button_link'] = ($data['button_link'] ?? null) ?: '#';
@@ -244,10 +251,11 @@ class HomeCmsController extends Controller
             if($home->header_logo && file_exists($oldLogoPath)) {
                 unlink($oldLogoPath);
             }
-            $file = $request->file('header_logo');
-            $name = time().'_logo.'.$file->extension();
-            $file->move(public_path('uploads/home'), $name);
-            $home->header_logo = $name;
+            $home->header_logo = basename(app(WebpImageOptimizer::class)->store(
+                $request->file('header_logo'),
+                'uploads/home',
+                time() . '_logo'
+            ));
         } elseif($request->input('delete_header_logo') == '1') {
             $oldLogoPath = $home->header_logo && str_contains($home->header_logo, '/')
                 ? public_path($home->header_logo)
@@ -266,16 +274,11 @@ class HomeCmsController extends Controller
             if($home->hero_image && file_exists(public_path($home->hero_image))) {
                 unlink(public_path($home->hero_image));
             }
-            $file = $request->file('hero_image');
-
-            $name = time().'_hero.'.$file->extension();
-
-            $file->move(
-                public_path('uploads/home'),
-                $name
+            $home->hero_image = app(WebpImageOptimizer::class)->store(
+                $request->file('hero_image'),
+                'uploads/home',
+                time() . '_hero'
             );
-
-            $home->hero_image = 'uploads/home/'.$name;
         } elseif($request->input('delete_hero_image') == '1') {
             if($home->hero_image && file_exists(public_path($home->hero_image))) {
                 unlink(public_path($home->hero_image));
@@ -289,16 +292,11 @@ class HomeCmsController extends Controller
                 unlink(public_path($home->about_image));
             }
 
-            $file = $request->file('about_image');
-
-            $name = time().'_about.'.$file->extension();
-
-            $file->move(
-                public_path('uploads/home'),
-                $name
+            $home->about_image = app(WebpImageOptimizer::class)->store(
+                $request->file('about_image'),
+                'uploads/home',
+                time() . '_about'
             );
-
-            $home->about_image = 'uploads/home/'.$name;
         } elseif($request->input('delete_about_image') == '1') {
             if($home->about_image && file_exists(public_path($home->about_image))) {
                 unlink(public_path($home->about_image));
@@ -312,16 +310,11 @@ class HomeCmsController extends Controller
             if($home->news_bg && file_exists(public_path($home->news_bg))) {
                 unlink(public_path($home->news_bg));
             }
-            $file = $request->file('news_bg');
-
-            $name = time().'_news.'.$file->extension();
-
-            $file->move(
-                public_path('uploads/home'),
-                $name
+            $home->news_bg = app(WebpImageOptimizer::class)->store(
+                $request->file('news_bg'),
+                'uploads/home',
+                time() . '_news'
             );
-
-            $home->news_bg = 'uploads/home/'.$name;
         } elseif($request->input('delete_news_bg') == '1') {
             if($home->news_bg && file_exists(public_path($home->news_bg))) {
                 unlink(public_path($home->news_bg));
@@ -335,10 +328,11 @@ class HomeCmsController extends Controller
             if($home->location1_image && file_exists(public_path($home->location1_image))) {
                 unlink(public_path($home->location1_image));
             }
-            $file = $request->file('location1_image');
-            $name = time().'_location1.'.$file->extension();
-            $file->move(public_path('uploads/home'), $name);
-            $home->location1_image = 'uploads/home/'.$name;
+            $home->location1_image = app(WebpImageOptimizer::class)->store(
+                $request->file('location1_image'),
+                'uploads/home',
+                time() . '_location1'
+            );
         } elseif($request->input('delete_location1_image') == '1') {
             if($home->location1_image && file_exists(public_path($home->location1_image))) {
                 unlink(public_path($home->location1_image));
@@ -352,10 +346,11 @@ class HomeCmsController extends Controller
             if($home->location2_image && file_exists(public_path($home->location2_image))) {
                 unlink(public_path($home->location2_image));
             }
-            $file = $request->file('location2_image');
-            $name = time().'_location2.'.$file->extension();
-            $file->move(public_path('uploads/home'), $name);
-            $home->location2_image = 'uploads/home/'.$name;
+            $home->location2_image = app(WebpImageOptimizer::class)->store(
+                $request->file('location2_image'),
+                'uploads/home',
+                time() . '_location2'
+            );
         } elseif($request->input('delete_location2_image') == '1') {
             if($home->location2_image && file_exists(public_path($home->location2_image))) {
                 unlink(public_path($home->location2_image));
@@ -369,10 +364,11 @@ class HomeCmsController extends Controller
             if($home->location3_image && file_exists(public_path($home->location3_image))) {
                 unlink(public_path($home->location3_image));
             }
-            $file = $request->file('location3_image');
-            $name = time().'_location3.'.$file->extension();
-            $file->move(public_path('uploads/home'), $name);
-            $home->location3_image = 'uploads/home/'.$name;
+            $home->location3_image = app(WebpImageOptimizer::class)->store(
+                $request->file('location3_image'),
+                'uploads/home',
+                time() . '_location3'
+            );
         } elseif($request->input('delete_location3_image') == '1') {
             if($home->location3_image && file_exists(public_path($home->location3_image))) {
                 unlink(public_path($home->location3_image));

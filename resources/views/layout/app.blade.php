@@ -5,17 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config('app.name') }}</title>
 
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    @php
+        $firstHeroSlide = ($heroSlides ?? collect())->first();
+    @endphp
+    @if($firstHeroSlide)
+        <link rel="preload"
+              as="image"
+              href="{{ asset($firstHeroSlide->image_avif_url ?: $firstHeroSlide->image_url) }}"
+              type="{{ $firstHeroSlide->image_avif_url ? 'image/avif' : 'image/webp' }}"
+              fetchpriority="high">
+    @endif
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <link rel="preload"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+          as="style"
+          onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet"></noscript>
 
     <link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ filemtime(public_path('css/home.css')) }}">
 </head>
-<body class="page-loading">
-    <div id="pageLoader" class="page-loader" role="status" aria-live="polite" aria-label="Loading page">
+<body>
+    <div id="pageLoader" class="page-loader page-loader--hidden" role="status" aria-live="polite" aria-label="Loading page">
         <div class="page-loader__content">
             <div class="page-loader__spinner">
                 <span class="page-loader__ring" aria-hidden="true"></span>
-                <img src="{{ asset('uploads/home/1780512372_logo.png') }}" alt="" class="page-loader__logo">
+                @if(($home ?? null)?->header_logo_url)
+                    <img src="{{ asset($home->header_logo_url) }}" alt="" class="page-loader__logo">
+                @else
+                    <i class="fa-solid fa-graduation-cap page-loader__fallback-icon" aria-hidden="true"></i>
+                @endif
             </div>
             <div class="page-loader__text">Loading...</div>
         </div>
@@ -29,7 +49,7 @@
         (() => {
             const loader = document.getElementById('pageLoader');
             const startedAt = performance.now();
-            const minimumDisplay = 650;
+            const minimumDisplay = 250;
 
             if (!loader) return;
 
@@ -47,7 +67,11 @@
                 }, delay);
             };
 
-            window.addEventListener('load', hideLoader, { once: true });
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', hideLoader, { once: true });
+            } else {
+                hideLoader();
+            }
             window.addEventListener('pageshow', (event) => {
                 if (event.persisted) hideLoader();
             });
@@ -78,7 +102,7 @@
             });
 
             document.addEventListener('submit', showLoader);
-            window.setTimeout(hideLoader, 8000);
+            window.setTimeout(hideLoader, 1500);
         })();
     </script>
 </body>

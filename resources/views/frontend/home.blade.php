@@ -22,8 +22,29 @@
 
         <div class="carousel-inner">
             @foreach($heroSlides as $slide)
+                @php
+                    $slideDimensions = $slide->image_dimensions;
+                @endphp
                 <div class="carousel-item hero-slide {{ $loop->first ? 'active' : '' }}">
-                    <img src="{{ asset($slide->image_url) }}" class="hero-image" alt="{{ $slide->title ?: 'KASBIT carousel slide' }}">
+                    <picture>
+                        @if($slide->image_avif_url)
+                            <source srcset="{{ asset($slide->image_avif_url) }}" type="image/avif">
+                        @endif
+                        <source srcset="{{ asset($slide->image_url) }}" type="image/webp">
+                        <img src="{{ asset($slide->image_url) }}"
+                             class="hero-image"
+                             alt="{{ $slide->title ?: 'KASBIT carousel slide' }}"
+                             width="{{ $slideDimensions['width'] }}"
+                             height="{{ $slideDimensions['height'] }}"
+                             @if($loop->first)
+                                 fetchpriority="high"
+                                 loading="eager"
+                                 decoding="async"
+                             @else
+                                 loading="lazy"
+                                 decoding="async"
+                             @endif>
+                    </picture>
                     @if($slide->title || $slide->subtitle || $slide->button_text)
                         <div class="hero-overlay">
                             <div class="container">
@@ -65,8 +86,26 @@
         </button>
     </section>
 @else
+    @php
+        $fallbackHeroImage = $home->hero_image ?? 'images/hero.webp';
+        $fallbackHeroAvif = preg_replace('/\.[^.]+$/', '.avif', $fallbackHeroImage);
+        $fallbackHeroDimensions = @getimagesize(public_path($fallbackHeroImage));
+    @endphp
     <section class="hero-section position-relative">
-        <img src="{{ asset($home->hero_image ?? 'images/hero.jpg') }}" class="hero-image">
+        <picture>
+            @if($fallbackHeroAvif && is_file(public_path($fallbackHeroAvif)))
+                <source srcset="{{ asset($fallbackHeroAvif) }}" type="image/avif">
+            @endif
+            <source srcset="{{ asset($fallbackHeroImage) }}" type="image/webp">
+            <img src="{{ asset($fallbackHeroImage) }}"
+                 class="hero-image"
+                 alt="KASBIT"
+                 width="{{ $fallbackHeroDimensions[0] ?? 1600 }}"
+                 height="{{ $fallbackHeroDimensions[1] ?? 563 }}"
+                 fetchpriority="high"
+                 loading="eager"
+                 decoding="async">
+        </picture>
         <div class="hero-overlay">
             <div class="container">
                 <div class="row">
@@ -189,6 +228,8 @@
 
                     @if($home->about_image ?? false)
                         <img src="{{ asset($home->about_image) }}"
+                             loading="lazy"
+                             decoding="async"
                              alt="{{ $home->about_title ?? 'About KASBIT' }}"
                              class="about-image">
                     @endif
@@ -270,7 +311,7 @@
                             <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
                                 <article class="news-carousel-card">
                                     <div class="news-carousel-image">
-                                        <img src="{{ asset($item->image_url) }}" alt="{{ $item->title }}">
+                                        <img src="{{ asset($item->image_url) }}" alt="{{ $item->title }}" loading="lazy" decoding="async">
                                     </div>
                                     <div class="news-carousel-content">
                                         <h3>{{ $item->title }}</h3>
@@ -346,7 +387,7 @@
                    aria-label="Open {{ $home->location1_name }} in Google Maps">
                     <div class="location-card">
                         @if($home->location1_image)
-                            <img src="{{ asset($home->location1_image) }}" class="location-card-image" alt="{{ $home->location1_name }}">
+                            <img src="{{ asset($home->location1_image) }}" class="location-card-image" alt="{{ $home->location1_name }}" loading="lazy" decoding="async">
                         @endif
                         <div class="location-card-body">
                             <h3>{{ $home->location1_name }}</h3>
@@ -372,7 +413,7 @@
                    aria-label="Open {{ $home->location2_name }} in Google Maps">
                     <div class="location-card">
                         @if($home->location2_image)
-                            <img src="{{ asset($home->location2_image) }}" class="location-card-image" alt="{{ $home->location2_name }}">
+                            <img src="{{ asset($home->location2_image) }}" class="location-card-image" alt="{{ $home->location2_name }}" loading="lazy" decoding="async">
                         @endif
                         <div class="location-card-body">
                             <h3>{{ $home->location2_name }}</h3>
@@ -398,7 +439,7 @@
                    aria-label="Open {{ $home->location3_name }} in Google Maps">
                     <div class="location-card">
                         @if($home->location3_image)
-                            <img src="{{ asset($home->location3_image) }}" class="location-card-image" alt="{{ $home->location3_name }}">
+                            <img src="{{ asset($home->location3_image) }}" class="location-card-image" alt="{{ $home->location3_name }}" loading="lazy" decoding="async">
                         @endif
                         <div class="location-card-body">
                             <h3>{{ $home->location3_name }}</h3>
@@ -435,7 +476,7 @@
 
             <div class="video-tour-frame">
                 @if($home->video_tour_file ?? false)
-                    <video id="kasbitVideoTour" muted playsinline preload="metadata" @if($home->video_tour_poster ?? false) poster="{{ asset($home->video_tour_poster) }}" @endif>
+                    <video id="kasbitVideoTour" muted playsinline preload="none" @if($home->video_tour_poster ?? false) poster="{{ asset($home->video_tour_poster) }}" @endif>
                         <source src="{{ asset($home->video_tour_file) }}">
                         Your browser does not support the video player.
                     </video>
@@ -444,6 +485,7 @@
                         id="kasbitVideoTourYoutube"
                         src="{{ $videoTourEmbedUrl }}"
                         title="{{ $home->video_tour_title ?: 'VIDEO TOUR OF KASBIT' }}"
+                        loading="lazy"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowfullscreen></iframe>
                 @endif
@@ -562,7 +604,9 @@
             <div class="founder-portrait-wrap" aria-hidden="true">
                 <div class="founder-hexagon-border"></div>
                 <div class="founder-hexagon-inner">
-                    <img src="{{ asset('images/khadim-ali-shah-bukhari.png') }}"
+                    <img src="{{ asset('images/khadim-ali-shah-bukhari.webp') }}"
+                         loading="lazy"
+                         decoding="async"
                          alt="Khadim Ali Shah Bukhari"
                          class="founder-portrait-image">
                 </div>

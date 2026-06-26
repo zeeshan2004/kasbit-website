@@ -107,7 +107,7 @@
                 @endif
             </div>
 
-            <form method="POST" action="{{ $editMenu ? route('header-menu.update', $editMenu) : route('header-menu.store') }}" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form id="header-menu-form" method="POST" action="{{ $editMenu ? route('header-menu.update', $editMenu) : route('header-menu.store') }}" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 @csrf
                 @if($editMenu)
                     @method('PUT')
@@ -123,12 +123,64 @@
                     <input type="text" name="link" value="{{ old('link', $editMenu->link ?? '') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent" placeholder="/about or https://example.com">
                 </div>
 
-                <div>
+                @php
+                    $selectedParentId = (string) old('parent_id', $editMenu->parent_id ?? request('parent_id', ''));
+                    $selectedParent = $parents->firstWhere('id', (int) $selectedParentId);
+                    $selectedParentLabel = $selectedParent
+                        ? trim(($selectedParent->parent ? $selectedParent->parent->name . ' / ' : '') . $selectedParent->name)
+                        : 'Top Level Menu';
+                @endphp
+
+                <div class="relative" data-parent-menu-picker>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Add Under Dropdown</label>
-                    <select name="parent_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent">
+                    <button type="button"
+                            class="w-full min-h-[42px] px-4 py-2 border border-gray-300 rounded-lg bg-white text-left flex items-center justify-between gap-3 focus:ring-2 focus:ring-kasbitBlue focus:border-transparent"
+                            data-parent-menu-trigger
+                            aria-expanded="false">
+                        <span class="truncate" data-parent-menu-label>{{ $selectedParentLabel }}</span>
+                        <i class="fa-solid fa-chevron-down text-gray-500 text-xs shrink-0"></i>
+                    </button>
+
+                    <div class="hidden absolute left-0 right-0 top-full z-50 mt-2 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden" data-parent-menu-panel>
+                        <div class="p-3 border-b border-gray-100">
+                            <input type="search"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-kasbitBlue focus:border-transparent"
+                                   placeholder="Search menu..."
+                                   data-parent-menu-search>
+                        </div>
+                        <div class="max-h-72 overflow-y-auto py-2 custom-scroll-hidden" data-parent-menu-options>
+                            <button type="button"
+                                    class="w-full px-4 py-2.5 text-left text-sm font-semibold text-kasbitBlue hover:bg-blue-50 flex items-center gap-2"
+                                    data-parent-menu-option
+                                    data-value=""
+                                    data-label="Top Level Menu">
+                                <i class="fa-solid fa-layer-group w-4"></i>
+                                <span>Top Level Menu</span>
+                            </button>
+                            @foreach($parents as $parent)
+                                @php
+                                    $parentLabel = trim(($parent->parent ? $parent->parent->name . ' / ' : '') . $parent->name);
+                                @endphp
+                                <button type="button"
+                                        class="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-start gap-3 {{ (string) $parent->id === $selectedParentId ? 'bg-blue-50 text-kasbitBlue font-semibold' : 'text-gray-800' }}"
+                                        data-parent-menu-option
+                                        data-value="{{ $parent->id }}"
+                                        data-label="{{ $parentLabel }}">
+                                    <i class="fa-solid {{ $parent->parent ? 'fa-turn-up rotate-90 text-gray-400' : 'fa-folder text-yellow-500' }} mt-0.5 w-4 shrink-0"></i>
+                                    <span class="leading-5">
+                                        @if($parent->parent)
+                                            <span class="block text-xs text-gray-500">{{ $parent->parent->name }}</span>
+                                        @endif
+                                        <span>{{ $parent->name }}</span>
+                                    </span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+                    <select name="parent_id" class="hidden" data-parent-menu-native>
                         <option value="">Top Level Menu</option>
                         @foreach($parents as $parent)
-                            <option value="{{ $parent->id }}" @selected((string) old('parent_id', $editMenu->parent_id ?? '') === (string) $parent->id)>
+                            <option value="{{ $parent->id }}" @selected($selectedParentId === (string) $parent->id)>
                                 {{ $parent->parent ? $parent->parent->name . ' → ' : '' }}{{ $parent->name }}
                             </option>
                         @endforeach
@@ -140,10 +192,42 @@
                     <input type="number" min="0" name="sort_order" value="{{ old('sort_order', $editMenu->sort_order ?? 0) }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent">
                 </div>
 
-                <div>
+                @php
+                    $iconOptions = \App\Http\Controllers\Admin\HeaderMenuController::iconOptions();
+                    $selectedIcon = old('icon', $editMenu->icon ?? 'fa-solid fa-folder');
+                    $selectedIconLabel = $iconOptions[$selectedIcon] ?? 'General / Folder';
+                @endphp
+
+                <div class="relative" data-icon-picker>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Admin Sidebar Icon</label>
-                    <select name="icon" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent">
-                        @foreach(\App\Http\Controllers\Admin\HeaderMenuController::iconOptions() as $icon => $label)
+                    <button type="button"
+                            class="w-full min-h-[42px] px-4 py-2 border border-gray-300 rounded-lg bg-white text-left flex items-center justify-between gap-3 focus:ring-2 focus:ring-kasbitBlue focus:border-transparent"
+                            data-icon-trigger
+                            aria-expanded="false">
+                        <span class="flex min-w-0 items-center gap-2">
+                            <i class="{{ $selectedIcon }} text-kasbitBlue w-4 shrink-0" data-icon-preview></i>
+                            <span class="truncate" data-icon-label>{{ $selectedIconLabel }}</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-down text-gray-500 text-xs shrink-0"></i>
+                    </button>
+
+                    <div class="hidden absolute left-0 right-0 top-full z-50 mt-2 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden" data-icon-panel>
+                        <div class="max-h-72 overflow-y-auto p-2 custom-scroll-hidden">
+                            @foreach($iconOptions as $icon => $label)
+                                <button type="button"
+                                        class="w-full px-3 py-2.5 text-left text-sm rounded-lg hover:bg-gray-50 flex items-center gap-3 {{ $selectedIcon === $icon ? 'bg-blue-50 text-kasbitBlue font-semibold' : 'text-gray-800' }}"
+                                        data-icon-option
+                                        data-value="{{ $icon }}"
+                                        data-label="{{ $label }}">
+                                    <i class="{{ $icon }} w-5 text-center shrink-0"></i>
+                                    <span>{{ $label }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <select name="icon" class="hidden" data-icon-native>
+                        @foreach($iconOptions as $icon => $label)
                             <option value="{{ $icon }}" @selected(old('icon', $editMenu->icon ?? 'fa-solid fa-folder') === $icon)>
                                 {{ $label }}
                             </option>
@@ -321,4 +405,104 @@
             </div>
         </div>
     </div>
+
+    <style>
+        .custom-scroll-hidden {
+            scrollbar-width: none;
+        }
+
+        .custom-scroll-hidden::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+
+    <script data-admin-page-script>
+        (() => {
+            document.querySelectorAll('[data-parent-menu-picker]').forEach((picker) => {
+                const trigger = picker.querySelector('[data-parent-menu-trigger]');
+                const panel = picker.querySelector('[data-parent-menu-panel]');
+                const search = picker.querySelector('[data-parent-menu-search]');
+                const nativeSelect = picker.querySelector('[data-parent-menu-native]');
+                const label = picker.querySelector('[data-parent-menu-label]');
+                const options = Array.from(picker.querySelectorAll('[data-parent-menu-option]'));
+
+                const close = () => {
+                    panel.classList.add('hidden');
+                    trigger.setAttribute('aria-expanded', 'false');
+                };
+
+                const open = () => {
+                    panel.classList.remove('hidden');
+                    trigger.setAttribute('aria-expanded', 'true');
+                    search.value = '';
+                    options.forEach((option) => option.classList.remove('hidden'));
+                    setTimeout(() => search.focus(), 0);
+                };
+
+                trigger.addEventListener('click', () => {
+                    panel.classList.contains('hidden') ? open() : close();
+                });
+
+                search.addEventListener('input', () => {
+                    const query = search.value.trim().toLowerCase();
+                    options.forEach((option) => {
+                        option.classList.toggle('hidden', !option.dataset.label.toLowerCase().includes(query));
+                    });
+                });
+
+                options.forEach((option) => {
+                    option.addEventListener('click', () => {
+                        nativeSelect.value = option.dataset.value;
+                        label.textContent = option.dataset.label;
+                        options.forEach((item) => item.classList.remove('bg-blue-50', 'text-kasbitBlue', 'font-semibold'));
+                        option.classList.add('bg-blue-50', 'text-kasbitBlue', 'font-semibold');
+                        close();
+                    });
+                });
+
+                document.addEventListener('click', (event) => {
+                    if (!picker.contains(event.target)) {
+                        close();
+                    }
+                });
+            });
+
+            document.querySelectorAll('[data-icon-picker]').forEach((picker) => {
+                const trigger = picker.querySelector('[data-icon-trigger]');
+                const panel = picker.querySelector('[data-icon-panel]');
+                const nativeSelect = picker.querySelector('[data-icon-native]');
+                const label = picker.querySelector('[data-icon-label]');
+                const preview = picker.querySelector('[data-icon-preview]');
+                const options = Array.from(picker.querySelectorAll('[data-icon-option]'));
+
+                const close = () => {
+                    panel.classList.add('hidden');
+                    trigger.setAttribute('aria-expanded', 'false');
+                };
+
+                trigger.addEventListener('click', () => {
+                    const willOpen = panel.classList.contains('hidden');
+                    panel.classList.toggle('hidden', !willOpen);
+                    trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                });
+
+                options.forEach((option) => {
+                    option.addEventListener('click', () => {
+                        nativeSelect.value = option.dataset.value;
+                        label.textContent = option.dataset.label;
+                        preview.className = option.dataset.value + ' text-kasbitBlue w-4 shrink-0';
+                        options.forEach((item) => item.classList.remove('bg-blue-50', 'text-kasbitBlue', 'font-semibold'));
+                        option.classList.add('bg-blue-50', 'text-kasbitBlue', 'font-semibold');
+                        close();
+                    });
+                });
+
+                document.addEventListener('click', (event) => {
+                    if (!picker.contains(event.target)) {
+                        close();
+                    }
+                });
+            });
+        })();
+    </script>
 </x-admin-layout>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\FooterSetting;
+use App\Support\WebpImageOptimizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 
@@ -44,10 +45,11 @@ class FooterCmsController extends Controller
 
         if ($request->hasFile('logo')) {
             $this->deleteFile($footer->logo);
-            $file = $request->file('logo');
-            $name = time() . '_footer_logo.' . $file->extension();
-            $file->move(public_path('uploads/footer'), $name);
-            $footer->logo = 'uploads/footer/' . $name;
+            $footer->logo = app(WebpImageOptimizer::class)->store(
+                $request->file('logo'),
+                'uploads/footer',
+                time() . '_footer_logo'
+            );
         } elseif ($request->boolean('delete_logo')) {
             $this->deleteFile($footer->logo);
             $footer->logo = null;
@@ -68,9 +70,11 @@ class FooterCmsController extends Controller
                 continue;
             }
 
-            $name = time() . '_' . $index . '_' . uniqid() . '_footer_gallery.' . $file->extension();
-            $file->move(public_path('uploads/footer'), $name);
-            $gallery[] = 'uploads/footer/' . $name;
+            $gallery[] = app(WebpImageOptimizer::class)->store(
+                $file,
+                'uploads/footer',
+                time() . '_' . $index . '_' . uniqid() . '_footer_gallery'
+            );
         }
 
         $footer->fill([

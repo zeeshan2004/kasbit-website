@@ -13,7 +13,13 @@ class HeaderMenuPageController extends Controller
 {
     public function edit(HeaderMenu $headerMenu)
     {
-        $page = $this->pageFor($headerMenu)->load(['slides', 'programSchemaTables.rows']);
+        $page = $this->pageFor($headerMenu)->load([
+            'slides',
+            'programSchemaTables.rows',
+            'academicCalendarTables.rows',
+            'departments',
+            'galleryImages',
+        ]);
 
         return view('admin.cms.header-menu-page', compact('headerMenu', 'page'));
     }

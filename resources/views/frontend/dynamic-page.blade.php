@@ -3,8 +3,12 @@
 @section('content')
     @include('frontend.partials.header')
 
-    <?php $isProfilePage = str_contains(strtolower($page->slug), 'international-board-of-advisors'); ?>
-    <main class="cms-content-page {{ $isProfilePage ? 'cms-profile-page' : '' }}" style="--page-accent:{{ $page->accent_color ?: '#07559d' }}">
+    <?php
+        $isProfilePage = str_contains(strtolower($page->slug), 'international-board-of-advisors');
+        $isMessagePage = str_contains(strtolower($page->slug), 'message')
+            || str_contains(strtolower($page->slug), 'business-administration');
+    ?>
+    <main class="cms-content-page {{ $isProfilePage ? 'cms-profile-page' : '' }} {{ $isMessagePage ? 'cms-message-page' : '' }}" style="--page-accent:{{ $page->accent_color ?: '#07559d' }}">
         <section class="cms-content-hero">
             <div class="container">
                 <span class="cms-content-eyebrow">{{ $page->eyebrow ?: $page->menu?->parent?->name }}</span>
@@ -15,6 +19,14 @@
             </div>
         </section>
 
+        @php
+            $hasPageContent = $page->slides->count()
+                || $page->programSchemaTables->count()
+                || $page->academicCalendarTables->count()
+                || $page->departments->count()
+                || $page->galleryImages->count();
+        @endphp
+
         @if($page->slides->count())
             <section class="cms-history-blocks {{ $isProfilePage ? 'cms-profile-blocks' : '' }}">
                 <div class="container">
@@ -23,7 +35,7 @@
                             <article class="cms-history-item {{ $slide->image_position === 'right' ? 'cms-history-item--image-right' : '' }}">
                                 @if($slide->image)
                                     <div class="cms-history-image">
-                                        <img src="{{ asset($slide->image) }}?v={{ $slide->updated_at?->timestamp }}" alt="{{ $slide->title }}" loading="lazy">
+                                        <img src="{{ asset($slide->image) }}?v={{ $slide->updated_at?->timestamp }}" alt="{{ $slide->title }}" loading="lazy" decoding="async">
                                     </div>
                                 @endif
                                 <div class="cms-history-copy">
@@ -38,7 +50,7 @@
                     </div>
                 </div>
             </section>
-        @else
+        @elseif(! $hasPageContent)
             <section class="cms-content-body">
                 <div class="container">
                     <article class="cms-content-copy">
@@ -100,6 +112,102 @@
                             </div>
                         </div>
                     @endforeach
+                </div>
+            </section>
+        @endif
+
+        @if($page->academicCalendarTables->count())
+            <section class="academic-calendar-section">
+                <div class="container">
+                    @foreach($page->academicCalendarTables as $calendarTable)
+                        @if($calendarTable->type === 'note')
+                            <div class="academic-calendar-note">
+                                {{ $calendarTable->rows->first()?->occasion ?: $calendarTable->title }}
+                            </div>
+                            @continue
+                        @endif
+
+                        <div class="academic-calendar-wrap academic-calendar-wrap--{{ $calendarTable->type === 'holidays' ? 'holidays' : 'semester' }}">
+                            @if($calendarTable->title)
+                                <h2>{{ $calendarTable->title }}</h2>
+                            @endif
+                            <div class="academic-calendar-scroll">
+                                <table class="academic-calendar-table">
+                                    @if($calendarTable->type === 'holidays')
+                                        <thead>
+                                            <tr>
+                                                <th>{{ $calendarTable->col1_label ?: 'Occasion' }}</th>
+                                                <th>{{ $calendarTable->col2_label ?: 'Days' }}</th>
+                                                <th>{{ $calendarTable->col3_label ?: 'Date' }}</th>
+                                            </tr>
+                                        </thead>
+                                    @endif
+                                    <tbody>
+                                        @foreach($calendarTable->rows as $row)
+                                            <tr>
+                                                <td>{{ $row->occasion }}</td>
+                                                @if($calendarTable->type === 'holidays')
+                                                    <td>{{ $row->days }}</td>
+                                                    <td>{{ $row->date_text }}</td>
+                                                @else
+                                                    <td>{{ $row->date_text }}</td>
+                                                @endif
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        @if($page->galleryImages->count())
+            <section class="page-gallery-section">
+                <div class="container">
+                    <div class="page-gallery-grid">
+                        @foreach($page->galleryImages as $galleryImage)
+                            <figure class="page-gallery-item">
+                                <img src="{{ asset($galleryImage->image) }}?v={{ $galleryImage->updated_at?->timestamp }}"
+                                     alt="{{ $galleryImage->caption ?: $page->title }}"
+                                     loading="lazy" decoding="async">
+                                @if($galleryImage->caption)
+                                    <figcaption>{{ $galleryImage->caption }}</figcaption>
+                                @endif
+                            </figure>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        @if($page->departments->count())
+            <section class="departments-section">
+                <div class="container">
+                    <div class="departments-grid">
+                        @foreach($page->departments as $department)
+                            @php
+                                $deptTag = $department->link ? 'a' : 'div';
+                            @endphp
+                            <{{ $deptTag }} class="department-card" @if($department->link) href="{{ $department->link }}" @endif>
+                                @if($department->image)
+                                    <div class="department-card-image">
+                                        <img src="{{ asset($department->image) }}?v={{ $department->updated_at?->timestamp }}" alt="{{ $department->name }}" loading="lazy" decoding="async">
+                                    </div>
+                                @endif
+                                <div class="department-card-body">
+                                    <h3>{{ $department->name }}</h3>
+                                    @if($department->head_of_department)
+                                        <p class="department-card-hod"><i class="fa-solid fa-user-tie"></i> {{ $department->head_of_department }}</p>
+                                    @endif
+                                    @if($department->description)
+                                        <p class="department-card-text">{!! nl2br(e($department->description)) !!}</p>
+                                    @endif
+                                </div>
+                            </{{ $deptTag }}>
+                        @endforeach
+                    </div>
                 </div>
             </section>
         @endif

@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\NewsItem;
+use App\Support\WebpImageOptimizer;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\File;
 
 class NewsItemController extends Controller
 {
@@ -70,12 +70,14 @@ class NewsItemController extends Controller
 
     private function storeImage(UploadedFile $file, string $suffix = ''): string
     {
-        File::ensureDirectoryExists(public_path('uploads/news'));
         $suffix = $suffix !== '' ? '_' . $suffix : '';
-        $name = time() . $suffix . '_' . uniqid() . '_news.' . $file->extension();
-        $file->move(public_path('uploads/news'), $name);
+        $path = app(WebpImageOptimizer::class)->store(
+            $file,
+            'uploads/news',
+            time() . $suffix . '_' . uniqid() . '_news'
+        );
 
-        return $name;
+        return basename($path);
     }
 
     private function deleteImage(NewsItem $newsItem): void

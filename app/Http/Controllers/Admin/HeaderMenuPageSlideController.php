@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\HeaderMenuPage;
 use App\Models\HeaderMenuPageSlide;
+use App\Support\WebpImageOptimizer;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\File;
 
 class HeaderMenuPageSlideController extends Controller
 {
@@ -80,12 +80,12 @@ class HeaderMenuPageSlideController extends Controller
 
     private function storeImage(UploadedFile $file, string $suffix = ''): string
     {
-        File::ensureDirectoryExists(public_path('uploads/page-slides'));
         $suffix = $suffix !== '' ? '_' . $suffix : '';
-        $name = time() . $suffix . '_' . uniqid() . '_page_slide.' . $file->extension();
-        $file->move(public_path('uploads/page-slides'), $name);
-
-        return 'uploads/page-slides/' . $name;
+        return app(WebpImageOptimizer::class)->store(
+            $file,
+            'uploads/page-slides',
+            time() . $suffix . '_' . uniqid() . '_page_slide'
+        );
     }
 
     private function deleteImage(HeaderMenuPageSlide $slide): void

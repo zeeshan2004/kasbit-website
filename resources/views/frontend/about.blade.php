@@ -16,7 +16,7 @@
 
         @if($page?->slides?->count())
             <section class="cms-history-blocks about-page-sections" style="--page-accent:{{ $page->accent_color ?: '#07559d' }}">
-                <div class="container">
+                <!-- <div class="container"> -->
                     <div class="cms-history-list">
                         @foreach($page->slides as $slide)
                             <article class="cms-history-item {{ $slide->image_position === 'right' ? 'cms-history-item--image-right' : '' }}">

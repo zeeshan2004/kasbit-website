@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\HeaderMenu;
 use App\Models\HeaderMenuPage;
 use App\Models\HomePage;
+use App\Support\WebpImageOptimizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -26,7 +27,7 @@ class HeaderMenuController extends Controller
         $headerMenu = HeaderMenu::create($this->validatedData($request));
         $this->syncPage($headerMenu, true);
 
-        return redirect()->route('header-menu.index')->with('success', 'Header menu item added.');
+        return $this->menuResponse($request, 'Header menu item added.');
     }
 
     public function edit(HeaderMenu $headerMenu)
@@ -65,10 +66,11 @@ class HeaderMenuController extends Controller
         if ($request->hasFile('header_logo')) {
             $this->deleteHeaderLogoFile($home);
 
-            $file = $request->file('header_logo');
-            $name = time() . '_logo.' . $file->extension();
-            $file->move(public_path('uploads/home'), $name);
-            $home->header_logo = $name;
+            $home->header_logo = basename(app(WebpImageOptimizer::class)->store(
+                $request->file('header_logo'),
+                'uploads/home',
+                time() . '_logo'
+            ));
         } elseif ($request->boolean('delete_header_logo')) {
             $this->deleteHeaderLogoFile($home);
             $home->header_logo = null;
@@ -92,7 +94,7 @@ class HeaderMenuController extends Controller
         $home->top_header_is_active = $request->boolean('top_header_is_active');
         $home->save();
 
-        return redirect()->route('header-menu.index')->with('success', 'Header settings updated.');
+        return $this->menuResponse($request, 'Header settings updated.');
     }
 
     public function update(Request $request, HeaderMenu $headerMenu)
@@ -100,14 +102,14 @@ class HeaderMenuController extends Controller
         $headerMenu->update($this->validatedData($request));
         $this->syncPage($headerMenu);
 
-        return redirect()->route('header-menu.index')->with('success', 'Header menu item updated.');
+        return $this->menuResponse($request, 'Header menu item updated.');
     }
 
-    public function destroy(HeaderMenu $headerMenu)
+    public function destroy(Request $request, HeaderMenu $headerMenu)
     {
         $headerMenu->delete();
 
-        return redirect()->route('header-menu.index')->with('success', 'Header menu item deleted.');
+        return $this->menuResponse($request, 'Header menu item deleted.');
     }
 
     public function toggle(Request $request, HeaderMenu $headerMenu)
@@ -134,6 +136,20 @@ class HeaderMenuController extends Controller
         }
 
         return redirect()->route('header-menu.index')->with('success', 'Menu status updated.');
+    }
+
+    private function menuResponse(Request $request, string $message)
+    {
+        $url = route('header-menu.index', [], false);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'refresh_url' => $url,
+            ]);
+        }
+
+        return redirect()->route('header-menu.index')->with('success', $message);
     }
 
     private function validatedData(Request $request): array

@@ -38,6 +38,72 @@
         .dropdown-container.open {
             max-height: 1000px; /* Increased for nested items */
         }
+
+        aside nav,
+        aside nav * {
+            box-sizing: border-box;
+        }
+
+        aside nav .dropdown-container {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        aside nav .dropdown-container a,
+        aside nav .dropdown-container button {
+            max-width: 100%;
+        }
+
+        aside nav .dropdown-container a {
+            min-width: 0;
+        }
+
+        aside nav .dropdown-container a i,
+        aside nav .dropdown-container button i {
+            flex: 0 0 auto;
+        }
+
+        aside nav .dropdown-container a span,
+        aside nav .dropdown-container button span {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        [data-admin-page-link] {
+            width: 100%;
+            margin: .125rem 0;
+            padding-right: .65rem;
+        }
+
+        [data-admin-page-link] span {
+            line-height: 1.35;
+        }
+
+        #admin-website-sections .dropdown-container {
+            padding-right: .5rem;
+        }
+
+        #admin-website-sections .dropdown-container > div > .flex {
+            width: 100%;
+            min-width: 0;
+        }
+
+        #admin-website-sections .dropdown-container > div > .flex > a {
+            min-width: 0;
+            overflow: hidden;
+            border-radius: .5rem;
+        }
+
+        #admin-website-sections .dropdown-container > div > .flex > a span {
+            line-height: 1.35;
+        }
+
+        #admin-website-sections .dropdown-container > div > .flex > button {
+            flex: 0 0 2.25rem;
+            padding-left: .5rem;
+            padding-right: .5rem;
+        }
+
         .chevron { transition: transform 0.3s ease; }
         .chevron.rotate { transform: rotate(180deg); }
 
@@ -118,9 +184,15 @@
             animation: adminLoaderSpin .72s linear infinite;
         }
 
-        .admin-loader-spinner i {
-            color: #0d47a1;
-            font-size: 23px;
+        .admin-loader-logo {
+            position: relative;
+            z-index: 1;
+            width: 46px;
+            height: 46px;
+            padding: 3px;
+            object-fit: contain;
+            border-radius: 50%;
+            background: #fff;
         }
 
         @keyframes adminLoaderSpin {
@@ -159,7 +231,13 @@
     <div id="admin-toast" role="status" aria-live="polite"></div>
     <div id="admin-loader" role="status" aria-live="polite" aria-label="Loading" aria-hidden="true">
         <div class="admin-loader-spinner">
-            <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+            @if($adminHome?->header_logo_url)
+                <img src="{{ asset($adminHome->header_logo_url) }}"
+                     alt=""
+                     class="admin-loader-logo">
+            @else
+                <i class="fa-solid fa-graduation-cap text-kasbitBlue text-xl" aria-hidden="true"></i>
+            @endif
         </div>
     </div>
 
@@ -197,7 +275,9 @@
 
                 <div id="admin-website-sections" class="space-y-1">
                     @forelse($adminWebsiteSections as $section)
-                        @php($sectionId = 'website-section-' . $section->id)
+                        @php
+                            $sectionId = 'website-section-' . $section->id;
+                        @endphp
                         <div>
                             @if($section->children->count())
                                 <div class="flex items-center rounded-lg hover:bg-gray-800 transition">
@@ -215,7 +295,9 @@
                                 </div>
                                 <div id="dd-{{ $sectionId }}" class="dropdown-container bg-slate-900/50 rounded-lg mt-1 pl-4 pr-2 space-y-1">
                                     @foreach($section->children as $child)
-                                        @php($childSectionId = 'website-section-' . $child->id)
+                                        @php
+                                            $childSectionId = 'website-section-' . $child->id;
+                                        @endphp
                                         <div>
                                             <div class="flex items-center rounded-md hover:bg-gray-800 transition">
                                                 <a href="{{ route('header-menu.page.edit', $child) }}"
@@ -347,6 +429,10 @@
                 </div>
 
                 <!-- ACADEMICS -->
+                @php
+                    $academicsAdminMenu = $adminWebsiteSections->firstWhere('name', 'Academics');
+                    $deansMessageAdminMenu = $academicsAdminMenu?->children->firstWhere('name', "Dean's Message");
+                @endphp
                 <div>
                     <button onclick="toggleDD('academics')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-800 hover:text-white transition focus:outline-none">
@@ -357,7 +443,7 @@
                         <i id="chevron-academics" class="fa-solid fa-chevron-down text-xs chevron text-gray-400"></i>
                     </button>
                     <div id="dd-academics" class="dropdown-container bg-slate-900/50 rounded-lg mt-1 pl-3 pr-2 space-y-1">
-                        <a href="#" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition"><i class="fa-solid fa-circle text-[4px]"></i><span>Dean's Message</span></a>
+                        <a href="{{ $deansMessageAdminMenu ? route('header-menu.page.edit', $deansMessageAdminMenu) : '#' }}" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition"><i class="fa-solid fa-message text-[11px] w-4 text-center"></i><span>Dean's Message</span></a>
                         <a href="#" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition"><i class="fa-solid fa-circle text-[4px]"></i><span>Faculty</span></a>
                         <a href="#" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition"><i class="fa-solid fa-circle text-[4px]"></i><span>Academic Calendar</span></a>
                         
