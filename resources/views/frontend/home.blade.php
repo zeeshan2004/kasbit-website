@@ -41,6 +41,7 @@
                                  loading="eager"
                                  decoding="async"
                              @else
+                                 fetchpriority="low"
                                  loading="lazy"
                                  decoding="async"
                              @endif>
@@ -230,6 +231,7 @@
                         <img src="{{ asset($home->about_image) }}"
                              loading="lazy"
                              decoding="async"
+                             fetchpriority="low"
                              alt="{{ $home->about_title ?? 'About KASBIT' }}"
                              class="about-image">
                     @endif
@@ -311,7 +313,7 @@
                             <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
                                 <article class="news-carousel-card">
                                     <div class="news-carousel-image">
-                                        <img src="{{ asset($item->image_url) }}" alt="{{ $item->title }}" loading="lazy" decoding="async">
+                                        <img src="{{ asset($item->image_url) }}" alt="{{ $item->title }}" loading="lazy" decoding="async" fetchpriority="low">
                                     </div>
                                     <div class="news-carousel-content">
                                         <h3>{{ $item->title }}</h3>
@@ -387,7 +389,7 @@
                    aria-label="Open {{ $home->location1_name }} in Google Maps">
                     <div class="location-card">
                         @if($home->location1_image)
-                            <img src="{{ asset($home->location1_image) }}" class="location-card-image" alt="{{ $home->location1_name }}" loading="lazy" decoding="async">
+                            <img src="{{ asset($home->location1_image) }}" class="location-card-image" alt="{{ $home->location1_name }}" loading="lazy" decoding="async" fetchpriority="low">
                         @endif
                         <div class="location-card-body">
                             <h3>{{ $home->location1_name }}</h3>
@@ -413,7 +415,7 @@
                    aria-label="Open {{ $home->location2_name }} in Google Maps">
                     <div class="location-card">
                         @if($home->location2_image)
-                            <img src="{{ asset($home->location2_image) }}" class="location-card-image" alt="{{ $home->location2_name }}" loading="lazy" decoding="async">
+                            <img src="{{ asset($home->location2_image) }}" class="location-card-image" alt="{{ $home->location2_name }}" loading="lazy" decoding="async" fetchpriority="low">
                         @endif
                         <div class="location-card-body">
                             <h3>{{ $home->location2_name }}</h3>
@@ -439,7 +441,7 @@
                    aria-label="Open {{ $home->location3_name }} in Google Maps">
                     <div class="location-card">
                         @if($home->location3_image)
-                            <img src="{{ asset($home->location3_image) }}" class="location-card-image" alt="{{ $home->location3_name }}" loading="lazy" decoding="async">
+                            <img src="{{ asset($home->location3_image) }}" class="location-card-image" alt="{{ $home->location3_name }}" loading="lazy" decoding="async" fetchpriority="low">
                         @endif
                         <div class="location-card-body">
                             <h3>{{ $home->location3_name }}</h3>
@@ -607,6 +609,7 @@
                     <img src="{{ asset('images/khadim-ali-shah-bukhari.webp') }}"
                          loading="lazy"
                          decoding="async"
+                         fetchpriority="low"
                          alt="Khadim Ali Shah Bukhari"
                          class="founder-portrait-image">
                 </div>

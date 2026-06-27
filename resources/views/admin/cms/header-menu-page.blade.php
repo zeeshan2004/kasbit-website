@@ -221,6 +221,7 @@
             </div>
         </section>
 
+        @unless(strcasecmp($headerMenu->name, 'Event Gallery') === 0)
         <section class="bg-white rounded-lg shadow-md p-6 border-l-4 border-sky-500">
             <div class="flex items-center mb-5">
                 <i class="fa-solid fa-images text-sky-500 text-xl mr-3"></i>
@@ -290,6 +291,96 @@
                 </div>
             @endif
         </section>
+        @endunless
+
+        @if(strcasecmp($headerMenu->name, 'Event Gallery') === 0)
+            <section class="bg-white rounded-lg shadow-md p-6 border-l-4 border-fuchsia-500">
+                <div class="flex items-center mb-5">
+                    <i class="fa-solid fa-photo-film text-fuchsia-500 text-xl mr-3"></i>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Event Albums</h2>
+                        <p class="text-sm text-gray-500">Create an album with a cover image and title. Then open it to upload all the photos for that event.</p>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Add Album</h3>
+                <form method="POST"
+                      action="{{ route('event-albums.store', $page) }}"
+                      enctype="multipart/form-data"
+                      class="mb-8 border border-gray-200 rounded-lg p-5 bg-gray-50">
+                    @csrf
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Album Title</label>
+                            <input type="text" name="title" placeholder="Sports Gala 2025" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Cover Image</label>
+                            <input type="file" name="cover_image" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
+                            <p class="mt-1 text-xs text-gray-500">Shown on the Event Gallery grid. JPG, PNG or WebP up to 10MB.</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end mt-4">
+                        <button type="submit" class="px-6 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white rounded-lg font-semibold">
+                            <i class="fa-solid fa-plus mr-2"></i>Create Album
+                        </button>
+                    </div>
+                </form>
+
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Manage Albums</h3>
+                @if($page->eventAlbums->count())
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        @foreach($page->eventAlbums as $album)
+                            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                @if($album->cover_image)
+                                    <img src="{{ asset($album->cover_image) }}?v={{ $album->updated_at?->timestamp }}" alt="{{ $album->title }}" class="h-40 w-full object-cover">
+                                @else
+                                    <div class="h-40 w-full bg-gray-100 flex items-center justify-center text-gray-400">
+                                        <i class="fa-solid fa-image text-3xl"></i>
+                                    </div>
+                                @endif
+                                <div class="p-3 space-y-2">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-xs font-semibold text-fuchsia-700">{{ $album->images_count }} photo(s)</span>
+                                        <a href="{{ route('event-albums.photos', $album) }}" class="px-3 py-1.5 bg-fuchsia-600 hover:bg-fuchsia-700 text-white rounded-lg text-sm font-semibold">
+                                            <i class="fa-solid fa-images mr-1"></i>Manage Photos
+                                        </a>
+                                    </div>
+                                    <form method="POST"
+                                          action="{{ route('event-albums.update', $album) }}"
+                                          enctype="multipart/form-data"
+                                          class="space-y-2">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="text" name="title" value="{{ $album->title }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" aria-label="Album title">
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" min="0" name="sort_order" value="{{ $album->sort_order }}" class="w-20 px-2 py-2 border border-gray-300 rounded-lg text-sm" aria-label="Display order">
+                                            <label class="inline-flex items-center gap-1 text-xs font-semibold text-gray-700">
+                                                <input type="checkbox" name="is_active" value="1" @checked($album->is_active)>
+                                                Show
+                                            </label>
+                                            <input type="file" name="cover_image" accept="image/*" class="flex-1 min-w-0 text-xs" aria-label="Replace cover">
+                                        </div>
+                                        <button type="submit" class="px-3 py-1.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg text-sm font-semibold">Update</button>
+                                    </form>
+                                    <form method="POST"
+                                          action="{{ route('event-albums.destroy', $album) }}"
+                                          onsubmit="return confirm('Delete this album and all its photos?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="w-full px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm">Delete Album</button>
+                                    </form>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center text-gray-500 py-8 border border-dashed border-gray-300 rounded-lg">
+                        No albums yet. Create one above.
+                    </div>
+                @endif
+            </section>
+        @endif
 
         @php($supportsCalendarTables = in_array(strtolower($headerMenu->name), ['academic calendar', 'academic scholarship'], true))
         @if($supportsCalendarTables)

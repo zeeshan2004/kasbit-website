@@ -22,9 +22,25 @@ class PageController extends Controller
                 ->with('rows'),
             'departments' => fn ($query) => $query->where('is_active', true),
             'galleryImages' => fn ($query) => $query->where('is_active', true),
+            'eventAlbums' => fn ($query) => $query->where('is_active', true)
+                ->withCount(['images' => fn ($q) => $q->where('is_active', true)]),
         ]);
 
         return view('frontend.dynamic-page', [
+            'page' => $page,
+            'home' => HomePage::first() ?? new HomePage(),
+        ]);
+    }
+
+    public function eventAlbum(EventAlbum $album)
+    {
+        $page = $album->page;
+        abort_unless($album->is_active && $page?->menu?->is_active, 404);
+
+        $album->load(['images' => fn ($query) => $query->where('is_active', true)]);
+
+        return view('frontend.event-album', [
+            'album' => $album,
             'page' => $page,
             'home' => HomePage::first() ?? new HomePage(),
         ]);

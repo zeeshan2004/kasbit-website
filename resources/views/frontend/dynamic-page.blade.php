@@ -24,7 +24,8 @@
                 || $page->programSchemaTables->count()
                 || $page->academicCalendarTables->count()
                 || $page->departments->count()
-                || $page->galleryImages->count();
+                || $page->galleryImages->count()
+                || $page->eventAlbums->count();
         @endphp
 
         @if($page->slides->count())
@@ -176,6 +177,31 @@
                                     <figcaption>{{ $galleryImage->caption }}</figcaption>
                                 @endif
                             </figure>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        @if($page->eventAlbums->count())
+            <section class="event-albums-section">
+                <div class="container">
+                    <div class="event-albums-grid">
+                        @foreach($page->eventAlbums as $album)
+                            <a href="{{ route('event-gallery.album', $album) }}" class="event-album-card">
+                                <div class="event-album-cover">
+                                    @if($album->cover_image)
+                                        <img src="{{ asset($album->cover_image) }}?v={{ $album->updated_at?->timestamp }}"
+                                             alt="{{ $album->title }}" loading="lazy" decoding="async">
+                                    @else
+                                        <span class="event-album-placeholder"><i class="fa-solid fa-photo-film"></i></span>
+                                    @endif
+                                    <span class="event-album-count"><i class="fa-solid fa-images"></i> {{ $album->images_count }}</span>
+                                </div>
+                                <div class="event-album-body">
+                                    <h3>{{ $album->title }}</h3>
+                                </div>
+                            </a>
                         @endforeach
                     </div>
                 </div>

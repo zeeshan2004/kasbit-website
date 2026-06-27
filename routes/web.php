@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\NewsItemController;
 use App\Http\Controllers\Admin\AcademicCalendarController;
 use App\Http\Controllers\Admin\AcademicDepartmentController;
 use App\Http\Controllers\Admin\PageGalleryController;
+use App\Http\Controllers\Admin\EventAlbumController;
 
 
 
@@ -36,6 +37,7 @@ Route::get('/', [HomeController::class, 'index']);
 Route::get('/about', [HomeController::class, 'about'])->name('about');
 Route::get('/pages/{page:slug}', [PageController::class, 'show'])->name('pages.show');
 Route::get('/pages/{page:slug}/download-pdf', [PageController::class, 'downloadPdf'])->name('pages.pdf.download');
+Route::get('/event-gallery/{album:slug}', [PageController::class, 'eventAlbum'])->name('event-gallery.album');
 
 
 
@@ -124,6 +126,21 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
         ->name('page-gallery.update');
     Route::delete('/page-gallery/{galleryImage}', [PageGalleryController::class, 'destroy'])
         ->name('page-gallery.destroy');
+
+    Route::post('/header-menu-pages/{page}/event-albums', [EventAlbumController::class, 'store'])
+        ->name('event-albums.store');
+    Route::put('/event-albums/{album}', [EventAlbumController::class, 'update'])
+        ->name('event-albums.update');
+    Route::delete('/event-albums/{album}', [EventAlbumController::class, 'destroy'])
+        ->name('event-albums.destroy');
+    Route::get('/event-albums/{album}/photos', [EventAlbumController::class, 'photos'])
+        ->name('event-albums.photos');
+    Route::post('/event-albums/{album}/photos', [EventAlbumController::class, 'storePhotos'])
+        ->name('event-albums.photos.store');
+    Route::put('/event-album-images/{image}', [EventAlbumController::class, 'updatePhoto'])
+        ->name('event-album-images.update');
+    Route::delete('/event-album-images/{image}', [EventAlbumController::class, 'destroyPhoto'])
+        ->name('event-album-images.destroy');
 
     Route::resource('header-menu', HeaderMenuController::class)
         ->except(['create', 'show'])

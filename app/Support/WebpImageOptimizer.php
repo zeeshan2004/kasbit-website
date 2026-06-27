@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Jobs\GenerateAvifImage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
@@ -20,9 +21,16 @@ class WebpImageOptimizer
         $filename = $stem . '.webp';
         $webpPath = $absoluteDirectory . DIRECTORY_SEPARATOR . $filename;
         $this->convert($file->getRealPath(), $webpPath);
-        $this->createAvif($webpPath);
 
-        return $relativeDirectory . '/' . $filename;
+        $relativePath = $relativeDirectory . '/' . $filename;
+
+        // WebP is ready instantly; generate the heavier AVIF in the background
+        // so uploads stay fast. The frontend falls back to WebP until it exists.
+        if (function_exists('imageavif')) {
+            GenerateAvifImage::dispatch($relativePath);
+        }
+
+        return $relativePath;
     }
 
     public function createAvif(string $source, ?string $destination = null): ?string
@@ -42,7 +50,7 @@ class WebpImageOptimizer
         $quality = 58;
 
         do {
-            imageavif($image, $destination, $quality, 6);
+            imageavif($image, $destination, $quality, 9);
             $quality -= 6;
         } while (filesize($destination) > self::MAX_BYTES && $quality >= 40);
 
