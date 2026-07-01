@@ -9,11 +9,16 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     @php
         $firstHeroSlide = ($heroSlides ?? collect())->first();
+        $firstHeroPreloadSrcset = $firstHeroSlide
+            ? ($firstHeroSlide->image_avif_srcset ?: $firstHeroSlide->image_srcset)
+            : null;
     @endphp
     @if($firstHeroSlide)
         <link rel="preload"
               as="image"
               href="{{ asset($firstHeroSlide->image_avif_url ?: $firstHeroSlide->image_url) }}"
+              @if($firstHeroPreloadSrcset) imagesrcset="{{ $firstHeroPreloadSrcset }}" @endif
+              imagesizes="{{ $firstHeroSlide->image_sizes }}"
               type="{{ $firstHeroSlide->image_avif_url ? 'image/avif' : 'image/webp' }}"
               fetchpriority="high">
     @endif

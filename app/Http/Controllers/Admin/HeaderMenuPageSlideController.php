@@ -23,8 +23,10 @@ class HeaderMenuPageSlideController extends Controller
             'slides.*.is_active' => ['nullable', 'boolean'],
         ]);
 
+        $createdSlides = collect();
+
         foreach ($validated['slides'] as $index => $slide) {
-            $page->slides()->create([
+            $createdSlides->push($page->slides()->create([
                 'title' => $slide['title'],
                 'description' => $slide['description'] ?? null,
                 'image' => $request->hasFile("slides.{$index}.image")
@@ -33,13 +35,21 @@ class HeaderMenuPageSlideController extends Controller
                 'image_position' => $slide['image_position'],
                 'sort_order' => $slide['sort_order'] ?? 0,
                 'is_active' => (bool) ($slide['is_active'] ?? false),
-            ]);
+            ]));
         }
 
         return $this->respond(
             $request,
             count($validated['slides']) . ' content block(s) added.',
-            $page->menu
+            $page->menu,
+            [
+                'append_html' => $createdSlides
+                    ->map(fn (HeaderMenuPageSlide $slide) => view('admin.cms.partials.page-section-card', compact('slide'))->render())
+                    ->implode(''),
+                'append_target' => '#page-section-list',
+                'remove_selector' => '#page-section-empty',
+                'reset_form' => true,
+            ]
         );
     }
 
@@ -65,8 +75,12 @@ class HeaderMenuPageSlideController extends Controller
         $data['sort_order'] = $data['sort_order'] ?? 0;
         $data['is_active'] = $request->boolean('is_active');
         $slide->update($data);
+        $slide->refresh();
 
-        return $this->respond($request, 'Content block updated.', $slide->page->menu);
+        return $this->respond($request, 'Content block updated.', $slide->page->menu, [
+            'replace_html' => view('admin.cms.partials.page-section-card', compact('slide'))->render(),
+            'replace_selector' => '#page-section-card-' . $slide->id,
+        ]);
     }
 
     public function destroy(Request $request, HeaderMenuPageSlide $slide)
@@ -95,15 +109,14 @@ class HeaderMenuPageSlideController extends Controller
         }
     }
 
-    private function respond(Request $request, string $message, $menu)
+    private function respond(Request $request, string $message, $menu, array $payload = [])
     {
         $url = route('header-menu.page.edit', $menu, false);
 
         if ($request->expectsJson()) {
-            return response()->json([
+            return response()->json(array_merge([
                 'message' => $message,
-                'refresh_url' => $url,
-            ]);
+            ], $payload));
         }
 
         return redirect($url)->with('success', $message);

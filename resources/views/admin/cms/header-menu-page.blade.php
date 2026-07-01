@@ -1,4 +1,5 @@
 <x-admin-layout :title="$headerMenu->name . ' CMS'" :header="$headerMenu->name . ' CMS'">
+    @php($isQecActivitiesAdmin = strtolower($page->slug) === 'qec-activities')
     <div class="max-w-6xl mx-auto space-y-6">
         @if(session('success'))
             <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
@@ -90,6 +91,7 @@
             </div>
         </form>
 
+        @unless($isQecActivitiesAdmin)
         <section class="bg-white rounded-lg shadow-md p-6 border-l-4 border-violet-500">
             <div class="flex items-center justify-between gap-4 mb-5">
                 <div class="flex items-center">
@@ -159,69 +161,19 @@
             </form>
 
             <h3 class="text-lg font-bold text-gray-800 mb-4">Edit Content Blocks</h3>
-            <div class="space-y-4">
+            <div class="space-y-4" id="page-section-list">
                 @forelse($page->slides as $slide)
-                    <div class="border border-gray-200 rounded-lg p-4">
-                        <form method="POST"
-                              action="{{ route('header-menu-page-slides.update', $slide) }}"
-                              data-page-section-form
-                              enctype="multipart/form-data">
-                            @csrf
-                            @method('PUT')
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                @if($slide->image)
-                                    <img src="{{ asset($slide->image) }}?v={{ $slide->updated_at?->timestamp }}"
-                                         alt="{{ $slide->title }}"
-                                         class="h-44 w-full object-cover rounded-lg shadow">
-                                @else
-                                    <div class="h-44 w-full rounded-lg bg-gray-100 border border-dashed border-gray-300 flex items-center justify-center text-gray-400">
-                                        <i class="fa-solid fa-align-left text-3xl"></i>
-                                    </div>
-                                @endif
-                                <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <input type="text" name="title" value="{{ $slide->title }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                    <div>
-                                        <input type="file" name="image" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                        <p class="mt-1 text-xs text-gray-500">JPG, PNG or WebP up to 10MB.</p>
-                                    </div>
-                                    <textarea name="description" rows="4" class="md:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg">{{ $slide->description }}</textarea>
-                                    <input type="number" min="0" name="sort_order" value="{{ $slide->sort_order }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                    <select name="image_position" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                        <option value="left" @selected($slide->image_position === 'left')>Image Left / Text Right</option>
-                                        <option value="right" @selected($slide->image_position === 'right')>Image Right / Text Left</option>
-                                    </select>
-                                    <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                        <input type="checkbox" name="is_active" value="1" @checked($slide->is_active)>
-                                        Show on frontend
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="flex justify-end mt-4 pt-4 border-t border-gray-100">
-                                <button type="submit" class="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg">
-                                    Update Block
-                                </button>
-                            </div>
-                        </form>
-                        <div class="flex items-center justify-end mt-3">
-                            <form method="POST"
-                                  action="{{ route('header-menu-page-slides.destroy', $slide) }}"
-                                  data-page-section-form
-                                  onsubmit="return confirm('Delete this content block?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">Delete</button>
-                            </form>
-                        </div>
-                    </div>
+                    @include('admin.cms.partials.page-section-card', ['slide' => $slide])
                 @empty
-                    <div class="text-center text-gray-500 py-8 border border-dashed border-gray-300 rounded-lg">
+                    <div class="text-center text-gray-500 py-8 border border-dashed border-gray-300 rounded-lg" id="page-section-empty">
                         No content blocks added yet.
                     </div>
                 @endforelse
             </div>
         </section>
+        @endunless
 
-        @unless(strcasecmp($headerMenu->name, 'Event Gallery') === 0)
+        @unless(strcasecmp($headerMenu->name, 'Event Gallery') === 0 || $isQecActivitiesAdmin)
         <section class="bg-white rounded-lg shadow-md p-6 border-l-4 border-sky-500">
             <div class="flex items-center mb-5">
                 <i class="fa-solid fa-images text-sky-500 text-xl mr-3"></i>
@@ -675,13 +627,14 @@
             </section>
         @endif
 
-        @if($headerMenu->isDescendantOf('Programs') && strcasecmp($headerMenu->name, 'Programs') !== 0)
+        @php($supportsProgramSchemaTables = ($headerMenu->isDescendantOf('Programs') && strcasecmp($headerMenu->name, 'Programs') !== 0) || $isQecActivitiesAdmin)
+        @if($supportsProgramSchemaTables)
             <section class="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
                 <div class="flex items-center mb-5">
                     <i class="fa-solid fa-table-list text-orange-500 text-xl mr-3"></i>
                     <div>
                         <h2 class="text-2xl font-bold text-gray-800">Program Schema Tables</h2>
-                        <p class="text-sm text-gray-500">Create multiple semester and subject tables for this program.</p>
+                        <p class="text-sm text-gray-500">{{ $isQecActivitiesAdmin ? 'Create and edit the QEC activity tables shown on the frontend.' : 'Create multiple semester and subject tables for this program.' }}</p>
                     </div>
                 </div>
 
@@ -704,14 +657,24 @@
 
                     <div data-schema-rows class="space-y-3">
                         <div data-schema-row class="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 bg-white border border-gray-200 rounded-lg">
-                            <div class="md:col-span-7">
+                            <div class="{{ $isQecActivitiesAdmin ? 'md:col-span-4' : 'md:col-span-7' }}">
                                 <label class="block text-xs font-bold text-gray-600 mb-1">Subject / Label</label>
                                 <input type="text" name="rows[0][subject]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                             </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Credit Hours</label>
+                            <div class="{{ $isQecActivitiesAdmin ? 'md:col-span-2' : 'md:col-span-2' }}">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isQecActivitiesAdmin ? 'Column 2' : 'Credit Hours' }}</label>
                                 <input type="text" name="rows[0][credit_hours]" placeholder="3 + 0" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                             </div>
+                            @if($isQecActivitiesAdmin)
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Column 3</label>
+                                    <input type="text" name="rows[0][col3_text]" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Column 4</label>
+                                    <input type="text" name="rows[0][col4_text]" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                </div>
+                            @endif
                             <div class="md:col-span-2 flex items-end gap-3 pb-2">
                                 <label class="inline-flex items-center gap-2 text-xs font-semibold text-gray-700">
                                     <input type="checkbox" name="rows[0][is_total]" value="1"> Bold row
@@ -761,8 +724,12 @@
                                 <div data-schema-rows class="space-y-3">
                                     @foreach($schemaTable->rows as $row)
                                         <div data-schema-row class="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                                            <input type="text" name="rows[{{ $loop->index }}][subject]" value="{{ $row->subject }}" required class="md:col-span-7 w-full px-3 py-2 border border-gray-300 rounded-lg" aria-label="Subject or label">
+                                            <input type="text" name="rows[{{ $loop->index }}][subject]" value="{{ $row->subject }}" required class="{{ $isQecActivitiesAdmin ? 'md:col-span-4' : 'md:col-span-7' }} w-full px-3 py-2 border border-gray-300 rounded-lg" aria-label="Subject or label">
                                             <input type="text" name="rows[{{ $loop->index }}][credit_hours]" value="{{ $row->credit_hours }}" placeholder="3 + 0" class="md:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                            @if($isQecActivitiesAdmin)
+                                                <input type="text" name="rows[{{ $loop->index }}][col3_text]" value="{{ $row->col3_text }}" class="md:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg" aria-label="Column 3">
+                                                <input type="text" name="rows[{{ $loop->index }}][col4_text]" value="{{ $row->col4_text }}" class="md:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg" aria-label="Column 4">
+                                            @endif
                                             <div class="md:col-span-2 flex items-center gap-3">
                                                 <label class="inline-flex items-center gap-2 text-xs font-semibold text-gray-700">
                                                     <input type="checkbox" name="rows[{{ $loop->index }}][is_total]" value="1" @checked($row->is_total)> Bold row

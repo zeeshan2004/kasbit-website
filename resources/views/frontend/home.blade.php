@@ -10,7 +10,7 @@
 @if($heroSlides->count())
     <section id="heroCarousel"
              class="hero-section carousel slide"
-             data-bs-ride="carousel"
+             data-bs-ride="false"
              data-bs-interval="5000"
              data-bs-pause="false"
              data-bs-wrap="true">
@@ -27,10 +27,10 @@
                 @endphp
                 <div class="carousel-item hero-slide {{ $loop->first ? 'active' : '' }}">
                     <picture>
-                        @if($slide->image_avif_url)
-                            <source srcset="{{ asset($slide->image_avif_url) }}" type="image/avif">
+                        @if($slide->image_avif_srcset)
+                            <source srcset="{{ $slide->image_avif_srcset }}" sizes="{{ $slide->image_sizes }}" type="image/avif">
                         @endif
-                        <source srcset="{{ asset($slide->image_url) }}" type="image/webp">
+                        <source srcset="{{ $slide->image_srcset }}" sizes="{{ $slide->image_sizes }}" type="image/webp">
                         <img src="{{ asset($slide->image_url) }}"
                              class="hero-image"
                              alt="{{ $slide->title ?: 'KASBIT carousel slide' }}"
@@ -91,13 +91,28 @@
         $fallbackHeroImage = $home->hero_image ?? 'images/hero.webp';
         $fallbackHeroAvif = preg_replace('/\.[^.]+$/', '.avif', $fallbackHeroImage);
         $fallbackHeroDimensions = @getimagesize(public_path($fallbackHeroImage));
+        $fallbackHeroWidths = [480, 768, 1200];
+        $fallbackHeroSrcset = collect($fallbackHeroWidths)
+            ->map(fn ($width) => preg_replace('/\.[^.]+$/', '-' . $width . '.webp', $fallbackHeroImage))
+            ->filter(fn ($path) => $path && is_file(public_path($path)))
+            ->map(fn ($path) => preg_match('/-(\d+)\.webp$/', $path, $match) ? asset($path) . ' ' . $match[1] . 'w' : null)
+            ->filter()
+            ->push(asset($fallbackHeroImage) . ' ' . ($fallbackHeroDimensions[0] ?? 1600) . 'w')
+            ->implode(', ');
+        $fallbackHeroAvifSrcset = collect($fallbackHeroWidths)
+            ->map(fn ($width) => preg_replace('/\.[^.]+$/', '-' . $width . '.avif', $fallbackHeroImage))
+            ->filter(fn ($path) => $path && is_file(public_path($path)))
+            ->map(fn ($path) => preg_match('/-(\d+)\.avif$/', $path, $match) ? asset($path) . ' ' . $match[1] . 'w' : null)
+            ->filter()
+            ->when($fallbackHeroAvif && is_file(public_path($fallbackHeroAvif)), fn ($items) => $items->push(asset($fallbackHeroAvif) . ' ' . ($fallbackHeroDimensions[0] ?? 1600) . 'w'))
+            ->implode(', ');
     @endphp
     <section class="hero-section position-relative">
         <picture>
-            @if($fallbackHeroAvif && is_file(public_path($fallbackHeroAvif)))
-                <source srcset="{{ asset($fallbackHeroAvif) }}" type="image/avif">
+            @if($fallbackHeroAvifSrcset)
+                <source srcset="{{ $fallbackHeroAvifSrcset }}" sizes="(max-width: 575px) 100vw, (max-width: 1199px) 100vw, 1600px" type="image/avif">
             @endif
-            <source srcset="{{ asset($fallbackHeroImage) }}" type="image/webp">
+            <source srcset="{{ $fallbackHeroSrcset }}" sizes="(max-width: 575px) 100vw, (max-width: 1199px) 100vw, 1600px" type="image/webp">
             <img src="{{ asset($fallbackHeroImage) }}"
                  class="hero-image"
                  alt="KASBIT"
@@ -145,14 +160,20 @@
                     const carousel = bootstrap.Carousel.getOrCreateInstance(carouselElement, {
                         interval: 5000,
                         pause: false,
-                        ride: 'carousel',
+                        ride: false,
                         wrap: true
                     });
                     let dragStartX = 0;
                     let activePointerId = null;
                     let dragged = false;
 
-                    carousel.cycle();
+                    const startCarousel = () => carousel.cycle();
+
+                    if ('requestIdleCallback' in window) {
+                        window.requestIdleCallback(startCarousel, { timeout: 2500 });
+                    } else {
+                        window.addEventListener('load', () => window.setTimeout(startCarousel, 1200), { once: true });
+                    }
 
                     carouselElement.addEventListener('pointerdown', function (event) {
                         if (event.pointerType === 'mouse' && event.button !== 0) return;

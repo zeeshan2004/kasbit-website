@@ -1006,6 +1006,31 @@
                     if (contentType.includes('application/json')) {
                         const payload = await response.json();
 
+                        if (payload.remove_selector) {
+                            document.querySelector(payload.remove_selector)?.remove();
+                        }
+
+                        if (payload.append_html && payload.append_target) {
+                            document.querySelector(payload.append_target)
+                                ?.insertAdjacentHTML('beforeend', payload.append_html);
+                        }
+
+                        if (payload.replace_html && payload.replace_selector) {
+                            const target = document.querySelector(payload.replace_selector);
+                            if (target) {
+                                target.outerHTML = payload.replace_html;
+                            }
+                        }
+
+                        if (payload.reset_form) {
+                            form.reset();
+                        }
+
+                        if (form.matches('[data-page-section-form]')
+                            && form.querySelector('input[name="_method"]')?.value?.toUpperCase() === 'DELETE') {
+                            form.closest('[data-page-section-card]')?.remove();
+                        }
+
                         if (payload.refresh_url) {
                             await syncAdminContent(payload.refresh_url);
                         }

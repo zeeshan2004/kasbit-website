@@ -65,6 +65,8 @@ class ProgramSchemaController extends Controller
             'rows' => ['required', 'array', 'min:1'],
             'rows.*.subject' => ['required', 'string', 'max:500'],
             'rows.*.credit_hours' => ['nullable', 'string', 'max:50'],
+            'rows.*.col3_text' => ['nullable', 'string', 'max:500'],
+            'rows.*.col4_text' => ['nullable', 'string', 'max:500'],
             'rows.*.is_total' => ['nullable', 'boolean'],
             'rows.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
@@ -79,6 +81,8 @@ class ProgramSchemaController extends Controller
                 'semester' => null,
                 'subject' => trim($row['subject']),
                 'credit_hours' => filled($row['credit_hours'] ?? null) ? trim($row['credit_hours']) : null,
+                'col3_text' => filled($row['col3_text'] ?? null) ? trim($row['col3_text']) : null,
+                'col4_text' => filled($row['col4_text'] ?? null) ? trim($row['col4_text']) : null,
                 'is_total' => (bool) ($row['is_total'] ?? false),
                 'sort_order' => $row['sort_order'] ?? $index,
             ]);
@@ -87,7 +91,11 @@ class ProgramSchemaController extends Controller
 
     private function ensureProgramPage(HeaderMenuPage $page): void
     {
-        abort_unless($page->menu?->isDescendantOf('Programs'), 404);
+        abort_unless(
+            $page->menu?->isDescendantOf('Programs')
+                || strtolower($page->slug) === 'qec-activities',
+            404
+        );
     }
 
     private function respond(
