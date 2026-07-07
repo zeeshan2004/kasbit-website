@@ -15,7 +15,7 @@ class HeaderMenuPageSlideController extends Controller
     {
         $validated = $request->validate([
             'slides' => ['required', 'array', 'min:1'],
-            'slides.*.title' => ['required', 'string', 'max:255'],
+            'slides.*.title' => ['nullable', 'string', 'max:255'],
             'slides.*.description' => ['nullable', 'string'],
             'slides.*.image' => ['nullable', 'image', 'max:10240'],
             'slides.*.image_position' => ['required', 'in:left,right'],
@@ -23,11 +23,23 @@ class HeaderMenuPageSlideController extends Controller
             'slides.*.is_active' => ['nullable', 'boolean'],
         ]);
 
+        foreach ($validated['slides'] as $index => $slide) {
+            $hasTitle = filled($slide['title'] ?? null);
+            $hasDescription = filled($slide['description'] ?? null);
+            $hasImage = $request->hasFile("slides.{$index}.image");
+
+            if (! $hasTitle && ! $hasDescription && ! $hasImage) {
+                return back()
+                    ->withErrors(["slides.{$index}.description" => 'Please add text or image for this content block.'])
+                    ->withInput();
+            }
+        }
+
         $createdSlides = collect();
 
         foreach ($validated['slides'] as $index => $slide) {
             $createdSlides->push($page->slides()->create([
-                'title' => $slide['title'],
+                'title' => $slide['title'] ?? '',
                 'description' => $slide['description'] ?? null,
                 'image' => $request->hasFile("slides.{$index}.image")
                     ? $this->storeImage($request->file("slides.{$index}.image"), (string) $index)
@@ -56,7 +68,7 @@ class HeaderMenuPageSlideController extends Controller
     public function update(Request $request, HeaderMenuPageSlide $slide)
     {
         $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
+            'title' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'max:10240'],
             'image_position' => ['required', 'in:left,right'],
@@ -67,12 +79,22 @@ class HeaderMenuPageSlideController extends Controller
             'image.max' => 'The image must not be larger than 10MB.',
         ]);
 
+        if (! filled($data['title'] ?? null)
+            && ! filled($data['description'] ?? null)
+            && ! $request->hasFile('image')
+            && ! $slide->image) {
+            return back()
+                ->withErrors(['description' => 'Please add text or image for this content block.'])
+                ->withInput();
+        }
+
         if ($request->hasFile('image')) {
             $this->deleteImage($slide);
             $data['image'] = $this->storeImage($request->file('image'));
         }
 
         $data['sort_order'] = $data['sort_order'] ?? 0;
+        $data['title'] = $data['title'] ?? '';
         $data['is_active'] = $request->boolean('is_active');
         $slide->update($data);
         $slide->refresh();

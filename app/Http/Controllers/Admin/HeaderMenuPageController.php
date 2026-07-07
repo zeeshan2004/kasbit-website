@@ -20,6 +20,7 @@ class HeaderMenuPageController extends Controller
             'departments',
             'galleryImages',
             'eventAlbums' => fn ($query) => $query->withCount('images'),
+            'elibraryResources',
         ]);
 
         return view('admin.cms.header-menu-page', compact('headerMenu', 'page'));

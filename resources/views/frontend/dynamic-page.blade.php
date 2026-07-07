@@ -10,6 +10,13 @@
         $documentPageSlugs = ['quality-policy-statement', 'qec-structure', 'qec-activity-calendar', 'qec-activity-calender'];
         $isDocumentPage = in_array(strtolower($page->slug), $documentPageSlugs, true);
         $isQecActivitiesPage = strtolower($page->slug) === 'qec-activities';
+        $isMembershipsPage = strtolower($page->slug) === 'memberships';
+        $isAtPtNotificationPage = strtolower($page->slug) === 'at-pt-notification';
+        $isElibraryResourcesPage = strtolower($page->slug) === 'e-library-resources';
+        $shouldShowSlides = $page->slides->count()
+            && ! ($isAtPtNotificationPage && $page->programSchemaTables->count());
+        $supportsPdfDownload = in_array(strtolower($page->menu?->name ?? ''), ['fee structure', 'program profile', 'admission policy'], true)
+            || (bool) $page->menu?->isDescendantOf('QEC');
     ?>
     <main class="cms-content-page {{ $isProfilePage ? 'cms-profile-page' : '' }} {{ $isMessagePage ? 'cms-message-page' : '' }} {{ $isDocumentPage ? 'cms-document-page' : '' }}" style="--page-accent:{{ $page->accent_color ?: '#07559d' }}">
         <section class="cms-content-hero">
@@ -29,10 +36,48 @@
                 || $page->departments->count()
                 || $page->galleryImages->count()
                 || $page->eventAlbums->count()
+                || $page->elibraryResources->count()
                 || $isQecActivitiesPage;
         @endphp
 
-        @if($page->slides->count())
+        @if($isElibraryResourcesPage && $page->elibraryResources->count())
+            <section class="elibrary-resources-section">
+                <div class="container">
+                    <div class="elibrary-resource-grid">
+                        @foreach($page->elibraryResources as $resource)
+                            @php
+                                $resourceImageUrl = asset($resource->image) . '?v=' . $resource->updated_at?->timestamp;
+                                $buttonLink = $resource->button_link ?: '#';
+                                $opensNewTab = \Illuminate\Support\Str::startsWith($buttonLink, ['http://', 'https://']);
+                            @endphp
+                            <article class="elibrary-resource-card">
+                                <div class="elibrary-resource-media">
+                                    <img src="{{ $resourceImageUrl }}"
+                                         alt="{{ $resource->title ?: 'E-Library resource' }}"
+                                         loading="lazy"
+                                         decoding="async">
+                                </div>
+                                @if($resource->title)
+                                    <h2>{{ $resource->title }}</h2>
+                                @endif
+                                @if($resource->button_link)
+                                    <a href="{{ $buttonLink }}"
+                                       class="elibrary-resource-button"
+                                       @if($opensNewTab) target="_blank" rel="noopener" @endif>
+                                        {{ $resource->button_text ?: 'Explore' }}
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    </a>
+                                @else
+                                    <span class="elibrary-resource-button is-disabled">
+                                        {{ $resource->button_text ?: 'Explore' }}
+                                    </span>
+                                @endif
+                            </article>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @elseif($shouldShowSlides)
             <section class="cms-history-blocks {{ $isProfilePage ? 'cms-profile-blocks' : '' }}">
                 <div class="container">
                     <div class="cms-history-list">
@@ -97,7 +142,7 @@
             </section>
         @endif
 
-        @if($page->pdf_file && in_array(strtolower($page->menu?->name ?? ''), ['fee structure', 'program profile', 'admission policy'], true))
+        @if($page->pdf_file && $supportsPdfDownload)
             <section class="cms-pdf-download-section">
                 <div class="container">
                     <div class="cms-pdf-download-card">
@@ -119,41 +164,129 @@
             </section>
         @endif
 
-        @if($page->programSchemaTables->count() && $isQecActivitiesPage)
+        @if($page->programSchemaTables->count() && $isMembershipsPage)
+            <section class="membership-table-section">
+                <div class="container">
+                    @foreach($page->programSchemaTables as $schemaTable)
+                        <div class="membership-table-wrap">
+                            @if($schemaTable->title)
+                                <h2>{{ $schemaTable->title }}</h2>
+                            @endif
+                            <div class="membership-table-scroll">
+                                <table class="membership-table">
+                                    <thead>
+                                        <tr>
+                                            <th>{{ $schemaTable->qec_serial_label ?: 'Logo’s' }}</th>
+                                            <th>{{ $schemaTable->qec_col1_label ?: 'Organization' }}</th>
+                                            <th>{{ $schemaTable->qec_col2_label ?: 'About the Organization' }}</th>
+                                            <th>{{ $schemaTable->qec_col3_label ?: 'Membership Status' }}</th>
+                                            <th>{{ $schemaTable->qec_col4_label ?: 'Membership Link' }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($schemaTable->rows as $row)
+                                            <tr class="{{ $row->is_total ? 'membership-table-total' : '' }}">
+                                                <td>
+                                                    @if($row->image_path)
+                                                        <img src="{{ asset($row->image_path) }}?v={{ $row->updated_at?->timestamp }}" alt="{{ $row->subject }} logo" loading="lazy" decoding="async">
+                                                    @else
+                                                        <span class="membership-logo-placeholder">logo</span>
+                                                    @endif
+                                                </td>
+                                                <td>{{ $row->subject }}</td>
+                                                <td>{{ $row->credit_hours }}</td>
+                                                <td>{{ $row->col3_text }}</td>
+                                                <td>
+                                                    @if($row->col4_text)
+                                                        <a href="{{ \Illuminate\Support\Str::startsWith($row->col4_text, ['http://', 'https://']) ? $row->col4_text : 'https://' . $row->col4_text }}" target="_blank" rel="noopener">Click here</a>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @elseif($page->programSchemaTables->count() && $isAtPtNotificationPage)
+            <section class="atpt-table-section">
+                <div class="container">
+                    @foreach($page->programSchemaTables as $schemaTable)
+                        <div class="atpt-table-wrap">
+                            @if($schemaTable->title)
+                                <h2>{{ $schemaTable->title }}</h2>
+                            @endif
+                            @if($schemaTable->qec_serial_label)
+                                <p class="atpt-table-subtitle">{!! nl2br(e($schemaTable->qec_serial_label)) !!}</p>
+                            @endif
+                            <div class="atpt-table-scroll">
+                                <table class="atpt-table">
+                                    <thead>
+                                        <tr>
+                                            <th>{{ $schemaTable->qec_col1_label ?: 'Team Name' }}</th>
+                                            <th>{{ $schemaTable->qec_col2_label ?: 'Program Team Members' }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($schemaTable->rows->groupBy('subject') as $teamName => $teamRows)
+                                            @foreach($teamRows as $row)
+                                                <tr class="{{ $row->is_total ? 'atpt-table-total' : '' }}">
+                                                    @if($loop->first)
+                                                        <td rowspan="{{ $teamRows->count() }}" class="atpt-team-name">{{ $teamName }}</td>
+                                                    @endif
+                                                    <td>{!! nl2br(e($row->credit_hours)) !!}</td>
+                                                </tr>
+                                            @endforeach
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @elseif($page->programSchemaTables->count() && $isQecActivitiesPage)
             <section class="qec-activities-section">
                 <div class="container">
                     @foreach($page->programSchemaTables as $schemaTable)
-                        @php($hasFourthColumn = $schemaTable->rows->contains(fn ($row) => filled($row->col4_text)))
+                        @php
+                            $hasFourthColumn = (bool) $schemaTable->qec_show_col4;
+                            $hasFifthColumn = (bool) $schemaTable->qec_show_col5;
+                        @endphp
                         <div class="qec-table-wrap">
-                            @if(strcasecmp($schemaTable->title, 'QEC Activities') !== 0)
+                            @if($schemaTable->title)
                                 <h2>{{ $schemaTable->title }}</h2>
                             @endif
                             <div class="qec-table-scroll">
                                 <table class="qec-activities-table">
                                     <thead>
                                         <tr>
-                                            <th>S. No</th>
+                                            <th>{{ $schemaTable->qec_serial_label ?: 'S. No' }}</th>
+                                            <th>{{ $schemaTable->qec_col1_label ?: 'Title of Event' }}</th>
+                                            <th>{{ $schemaTable->qec_col2_label ?: 'Date Held' }}</th>
+                                            <th>{{ $schemaTable->qec_col3_label ?: 'Host' }}</th>
                                             @if($hasFourthColumn)
-                                                <th>Title of Workshop/Seminar</th>
-                                                <th>Contributed by</th>
-                                                <th>Venue</th>
-                                                <th>Date Held</th>
-                                            @else
-                                                <th>Title of Event</th>
-                                                <th>Date Held</th>
-                                                <th>Host</th>
+                                                <th>{{ $schemaTable->qec_col4_label ?: 'Date Held' }}</th>
+                                            @endif
+                                            @if($hasFifthColumn)
+                                                <th>{{ $schemaTable->qec_col5_label ?: 'Participants' }}</th>
                                             @endif
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($schemaTable->rows as $row)
-                                            <tr>
+                                            <tr class="{{ $row->is_total ? 'qec-activities-total' : '' }}">
                                                 <td>{{ $loop->iteration }}</td>
                                                 <td>{{ $row->subject }}</td>
                                                 <td>{{ $row->credit_hours }}</td>
                                                 <td>{{ $row->col3_text }}</td>
                                                 @if($hasFourthColumn)
                                                     <td>{{ $row->col4_text }}</td>
+                                                @endif
+                                                @if($hasFifthColumn)
+                                                    <td>{{ $row->col5_text }}</td>
                                                 @endif
                                             </tr>
                                         @endforeach

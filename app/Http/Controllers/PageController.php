@@ -22,6 +22,7 @@ class PageController extends Controller
                 ->with('rows'),
             'departments' => fn ($query) => $query->where('is_active', true),
             'galleryImages' => fn ($query) => $query->where('is_active', true),
+            'elibraryResources' => fn ($query) => $query->where('is_active', true),
             'eventAlbums' => fn ($query) => $query->where('is_active', true)
                 ->withCount(['images' => fn ($q) => $q->where('is_active', true)]),
         ]);
@@ -60,10 +61,16 @@ class PageController extends Controller
 
     private function supportsPdf(HeaderMenuPage $page): bool
     {
-        return in_array(strtolower($page->menu?->name ?? ''), [
+        $menu = $page->menu;
+
+        if (! $menu) {
+            return false;
+        }
+
+        return in_array(strtolower($menu->name), [
             'fee structure',
             'program profile',
             'admission policy',
-        ], true);
+        ], true) || $menu->isDescendantOf('QEC');
     }
 }

@@ -16,6 +16,8 @@ use App\Http\Controllers\Admin\AcademicCalendarController;
 use App\Http\Controllers\Admin\AcademicDepartmentController;
 use App\Http\Controllers\Admin\PageGalleryController;
 use App\Http\Controllers\Admin\EventAlbumController;
+use App\Http\Controllers\Admin\AdminProfileController;
+use App\Http\Controllers\Admin\ElibraryResourceController;
 
 
 
@@ -71,6 +73,11 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('admin.dashboard');
+
+    Route::get('/profile', [AdminProfileController::class, 'edit'])
+        ->name('admin.profile.edit');
+    Route::put('/profile', [AdminProfileController::class, 'update'])
+        ->name('admin.profile.update');
     
     // Life @ Kasbit Sub-Pages Routes
     Route::get('/life-at-kasbit/facilities', fn() => view('admin.life.facilities'))->name('admin.facilities');
@@ -141,6 +148,13 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
         ->name('event-album-images.update');
     Route::delete('/event-album-images/{image}', [EventAlbumController::class, 'destroyPhoto'])
         ->name('event-album-images.destroy');
+
+    Route::post('/header-menu-pages/{page}/elibrary-resources', [ElibraryResourceController::class, 'store'])
+        ->name('elibrary-resources.store');
+    Route::put('/elibrary-resources/{resource}', [ElibraryResourceController::class, 'update'])
+        ->name('elibrary-resources.update');
+    Route::delete('/elibrary-resources/{resource}', [ElibraryResourceController::class, 'destroy'])
+        ->name('elibrary-resources.destroy');
 
     Route::resource('header-menu', HeaderMenuController::class)
         ->except(['create', 'show'])

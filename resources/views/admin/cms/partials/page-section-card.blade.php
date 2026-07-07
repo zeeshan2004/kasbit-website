@@ -16,7 +16,7 @@
                 </div>
             @endif
             <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input type="text" name="title" value="{{ $slide->title }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <input type="text" name="title" value="{{ $slide->title }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                 <div>
                     <input type="file" name="image" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     <p class="mt-1 text-xs text-gray-500">JPG, PNG or WebP up to 10MB.</p>

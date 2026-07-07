@@ -100,7 +100,7 @@ class HeaderMenuController extends Controller
     public function update(Request $request, HeaderMenu $headerMenu)
     {
         $headerMenu->update($this->validatedData($request));
-        $this->syncPage($headerMenu);
+        $this->syncPage($headerMenu, true);
 
         return $this->menuResponse($request, 'Header menu item updated.');
     }
@@ -159,7 +159,6 @@ class HeaderMenuController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'link' => ['nullable', 'string', 'max:255'],
             'icon' => ['nullable', 'string', 'in:' . implode(',', array_keys($this->availableIcons()))],
-            'show_in_admin_sidebar' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
         ]);
@@ -172,8 +171,7 @@ class HeaderMenuController extends Controller
         }
         $data['link'] = $this->normalizeLink($data['link'] ?? null);
         $data['icon'] = $data['icon'] ?: 'fa-solid fa-folder';
-        $data['show_in_admin_sidebar'] = empty($data['parent_id'])
-            && $request->boolean('show_in_admin_sidebar');
+        $data['show_in_admin_sidebar'] = empty($data['parent_id']);
         $data['sort_order'] = $data['sort_order'] ?? 0;
         $data['is_active'] = $request->boolean('is_active');
 
@@ -289,31 +287,37 @@ class HeaderMenuController extends Controller
 
     private function availableParents(?HeaderMenu $editing = null)
     {
-        return HeaderMenu::with('parent')
+        $blockedIds = collect();
+
+        if ($editing) {
+            $editing->loadMissing('children.children');
+            $blockedIds = $this->menuBranchIds($editing);
+        }
+
+        return HeaderMenu::with(['children' => fn ($query) => $query
+                ->orderBy('sort_order')
+                ->orderBy('name')
+            ])
+            ->whereNull('parent_id')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
-            ->reject(function (HeaderMenu $candidate) use ($editing) {
+            ->flatMap(function (HeaderMenu $menu) {
+                return collect([$menu])->merge($menu->children);
+            })
+            ->reject(function (HeaderMenu $candidate) use ($blockedIds) {
                 if ($candidate->parent?->parent_id) {
                     return true;
                 }
 
-                if (!$editing) {
-                    return false;
-                }
-
-                $menu = $candidate;
-
-                while ($menu) {
-                    if ($menu->id === $editing->id) {
-                        return true;
-                    }
-
-                    $menu = $menu->parent;
-                }
-
-                return false;
+                return $blockedIds->contains($candidate->id);
             })
             ->values();
+    }
+
+    private function menuBranchIds(HeaderMenu $menu): \Illuminate\Support\Collection
+    {
+        return collect([$menu->id])
+            ->merge($menu->children->flatMap(fn (HeaderMenu $child) => $this->menuBranchIds($child)));
     }
 }

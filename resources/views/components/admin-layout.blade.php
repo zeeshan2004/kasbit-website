@@ -98,6 +98,25 @@
             line-height: 1.35;
         }
 
+        #admin-website-sections > div > .flex > a {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            min-height: 3.25rem;
+        }
+
+        #admin-website-sections > div > .flex > a > i {
+            flex: 0 0 1.25rem;
+        }
+
+        #admin-website-sections > div > .flex > a > span {
+            display: block;
+            min-width: 0;
+            flex: 1 1 auto;
+            color: #ffcc00;
+            overflow-wrap: anywhere;
+        }
+
         #admin-website-sections .dropdown-container > div > .flex > button {
             flex: 0 0 2.25rem;
             padding-left: .5rem;
@@ -225,6 +244,101 @@
             0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, .38); }
             100% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
         }
+
+        .admin-user-menu {
+            position: relative;
+        }
+
+        .admin-user-trigger {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            padding: .35rem .45rem .35rem .75rem;
+            border-left: 1px solid #e5e7eb;
+            color: #374151;
+            transition: opacity .18s ease;
+        }
+
+        .admin-user-trigger:hover {
+            opacity: .82;
+        }
+
+        .admin-user-dropdown {
+            position: absolute;
+            top: calc(100% + .65rem);
+            right: 0;
+            z-index: 60;
+            width: 260px;
+            overflow: hidden;
+            border-radius: .75rem;
+            background: #11131a;
+            color: #fff;
+            box-shadow: 0 22px 45px rgba(15, 23, 42, .24);
+        }
+
+        .admin-user-dropdown[hidden] {
+            display: none;
+        }
+
+        .admin-user-card {
+            display: flex;
+            gap: .75rem;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        .admin-user-card img {
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+        }
+
+        .admin-user-card strong,
+        .admin-user-card span {
+            display: block;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .admin-user-card strong {
+            font-size: .9rem;
+        }
+
+        .admin-user-card span {
+            color: #aeb4c2;
+            font-size: .78rem;
+        }
+
+        .admin-user-dropdown a,
+        .admin-user-dropdown button {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            gap: .8rem;
+            padding: .85rem 1rem;
+            color: #f8fafc;
+            font-size: .88rem;
+            text-align: left;
+            transition: background-color .18s ease;
+        }
+
+        .admin-user-dropdown a:hover,
+        .admin-user-dropdown button:hover {
+            background: rgba(255, 255, 255, .08);
+        }
+
+        .admin-user-dropdown i {
+            width: 18px;
+            color: #aeb4c2;
+            text-align: center;
+        }
+
+        .admin-user-dropdown form {
+            border-top: 1px solid rgba(255, 255, 255, .08);
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans flex h-screen overflow-hidden">
@@ -257,6 +371,12 @@
                    class="flex items-center space-x-3 px-4 py-3 rounded-lg {{ Request::is('admin/dashboard') ? 'bg-kasbitBlue text-white font-medium shadow-md' : 'hover:bg-gray-800 hover:text-white transition' }}">
                     <i class="fa-solid fa-chart-pie w-5 text-center text-base"></i>
                     <span>Dashboard</span>
+                </a>
+
+                <a href="{{ route('admin.profile.edit') }}"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg {{ Request::is('admin/profile') ? 'bg-kasbitBlue text-white font-medium shadow-md' : 'hover:bg-gray-800 hover:text-white transition' }}">
+                    <i class="fa-solid fa-user-gear w-5 text-center text-base"></i>
+                    <span>Edit Profile</span>
                 </a>
 
                 <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 hover:text-white transition">
@@ -647,7 +767,7 @@
                     <div id="dd-cms-pages" class="dropdown-container bg-slate-900/50 rounded-lg mt-1 pl-4 pr-2 space-y-1">
                         <a href="{{ route('header-menu.index') }}" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition"><i class="fa-solid fa-circle text-[4px]"></i><span>Header Menu</span></a>
                         <a href="{{ route('footer-cms.index') }}" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition"><i class="fa-solid fa-circle text-[4px]"></i><span>Footer CMS</span></a>
-                        <a href="#" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition text-gray-400 cursor-not-allowed opacity-50"><i class="fa-solid fa-circle text-[4px]"></i><span>About Page (Coming Soon)</span></a>
+                        <!-- <a href="#" class="flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:text-white hover:bg-gray-800 transition text-gray-400 cursor-not-allowed opacity-50"><i class="fa-solid fa-circle text-[4px]"></i><span>About Page (Coming Soon)</span></a> -->
                     </div>
                 </div>
 
@@ -676,12 +796,42 @@
     <div class="flex-1 flex flex-col overflow-hidden">
         <header class="h-16 bg-white border-b flex items-center justify-between px-6 shadow-sm">
             <h2 id="admin-page-heading" class="text-xl font-semibold text-gray-800">{{ $header ?? 'Dashboard Overview' }}</h2>
-            <div class="flex items-center space-x-2 border-l pl-4">
-                <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? 'Admin') }}&background=0d47a1&color=fff"
-                     alt="User" class="w-8 h-8 rounded-full">
-                <span class="text-sm font-medium text-gray-700 hidden md:inline-block">
-                    {{ Auth::user()->name ?? 'KASBIT Admin' }}
-                </span>
+            <div class="admin-user-menu" data-admin-user-menu>
+                <button type="button"
+                        class="admin-user-trigger"
+                        data-admin-user-trigger
+                        aria-expanded="false"
+                        aria-haspopup="true">
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? 'Admin') }}&background=0d47a1&color=fff"
+                         alt="User" class="w-8 h-8 rounded-full">
+                    <span class="text-sm font-medium text-gray-700 hidden md:inline-block">
+                        {{ Auth::user()->name ?? 'KASBIT Admin' }}
+                    </span>
+                    <i class="fa-solid fa-chevron-down text-xs text-gray-400"></i>
+                </button>
+
+                <div class="admin-user-dropdown" data-admin-user-dropdown hidden>
+                    <div class="admin-user-card">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? 'Admin') }}&background=0d47a1&color=fff" alt="">
+                        <div class="min-w-0">
+                            <strong>{{ Auth::user()->name ?? 'KASBIT Admin' }}</strong>
+                            <span>{{ Auth::user()->email ?? 'admin@kasbit.com' }}</span>
+                        </div>
+                    </div>
+
+                    <a href="{{ route('admin.profile.edit') }}">
+                        <i class="fa-solid fa-user-gear"></i>
+                        <span>Profile Settings</span>
+                    </a>
+
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            <span>Logout</span>
+                        </button>
+                    </form>
+                </div>
             </div>
         </header>
 
@@ -692,6 +842,32 @@
 
     <!-- JavaScript logic handling multi-level toggles -->
     <script>
+        document.querySelectorAll('[data-admin-user-menu]').forEach((menu) => {
+            const trigger = menu.querySelector('[data-admin-user-trigger]');
+            const dropdown = menu.querySelector('[data-admin-user-dropdown]');
+
+            if (!trigger || !dropdown) return;
+
+            const close = () => {
+                dropdown.hidden = true;
+                trigger.setAttribute('aria-expanded', 'false');
+            };
+
+            trigger.addEventListener('click', (event) => {
+                event.stopPropagation();
+                dropdown.hidden = !dropdown.hidden;
+                trigger.setAttribute('aria-expanded', dropdown.hidden ? 'false' : 'true');
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!menu.contains(event.target)) close();
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') close();
+            });
+        });
+
         // Toggle Parent Dropdown (Level 1)
         function toggleDD(id) {
             const menu = document.getElementById('dd-' + id);
@@ -948,9 +1124,19 @@
             document.addEventListener('submit', async (event) => {
                 const form = event.target;
 
+                if (event.defaultPrevented) {
+                    return;
+                }
+
                 if (!(form instanceof HTMLFormElement)
                     || form.dataset.noAjax !== undefined
                     || new URL(form.action, window.location.href).pathname === '/logout') {
+                    return;
+                }
+
+                if (form.dataset.confirmMessage && !window.confirm(form.dataset.confirmMessage)) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
                     return;
                 }
 

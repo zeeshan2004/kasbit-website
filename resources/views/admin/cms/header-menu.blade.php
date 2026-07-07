@@ -115,12 +115,13 @@
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Name</label>
-                    <input type="text" name="name" value="{{ old('name', $editMenu->name ?? '') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent" placeholder="Home, About, Admissions">
+                    <input type="text" name="name" value="{{ old('name', $editMenu->name ?? '') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent" placeholder="Home, About, Admissions" data-menu-name-input>
                 </div>
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Link</label>
-                    <input type="text" name="link" value="{{ old('link', $editMenu->link ?? '') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent" placeholder="/about or https://example.com">
+                    <input type="text" name="link" value="{{ old('link', $editMenu->link ?? '') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent" placeholder="Auto generated after menu selection" data-menu-link-input>
+                    <p class="mt-1 text-xs text-gray-500">Leave blank; page link will be generated automatically for dropdown items.</p>
                 </div>
 
                 @php
@@ -128,7 +129,7 @@
                     $selectedParent = $parents->firstWhere('id', (int) $selectedParentId);
                     $selectedParentLabel = $selectedParent
                         ? trim(($selectedParent->parent ? $selectedParent->parent->name . ' / ' : '') . $selectedParent->name)
-                        : 'Top Level Menu';
+                        : 'New Main Header';
                 @endphp
 
                 <div class="relative" data-parent-menu-picker>
@@ -153,38 +154,47 @@
                                     class="w-full px-4 py-2.5 text-left text-sm font-semibold text-kasbitBlue hover:bg-blue-50 flex items-center gap-2"
                                     data-parent-menu-option
                                     data-value=""
-                                    data-label="Top Level Menu">
+                                    data-label="New Main Header"
+                                    data-search="new main header top level">
                                 <i class="fa-solid fa-layer-group w-4"></i>
-                                <span>Top Level Menu</span>
+                                <span>New Main Header</span>
                             </button>
                             @foreach($parents as $parent)
                                 @php
                                     $parentLabel = trim(($parent->parent ? $parent->parent->name . ' / ' : '') . $parent->name);
+                                    $isChildParent = (bool) $parent->parent;
+                                    $parentSearch = strtolower($parentLabel . ' ' . $parent->name . ' ' . ($parent->parent?->name ?? ''));
                                 @endphp
                                 <button type="button"
-                                        class="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-start gap-3 {{ (string) $parent->id === $selectedParentId ? 'bg-blue-50 text-kasbitBlue font-semibold' : 'text-gray-800' }}"
+                                        class="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-start gap-3 {{ $isChildParent ? 'pl-9' : 'border-t border-gray-100 mt-1 font-semibold' }} {{ (string) $parent->id === $selectedParentId ? 'bg-blue-50 text-kasbitBlue font-semibold' : 'text-gray-800' }}"
                                         data-parent-menu-option
                                         data-value="{{ $parent->id }}"
-                                        data-label="{{ $parentLabel }}">
-                                    <i class="fa-solid {{ $parent->parent ? 'fa-turn-up rotate-90 text-gray-400' : 'fa-folder text-yellow-500' }} mt-0.5 w-4 shrink-0"></i>
+                                        data-label="{{ $parentLabel }}"
+                                        data-search="{{ $parentSearch }}">
+                                    <i class="fa-solid {{ $isChildParent ? 'fa-turn-up rotate-90 text-gray-400' : 'fa-folder text-yellow-500' }} mt-0.5 w-4 shrink-0"></i>
                                     <span class="leading-5">
-                                        @if($parent->parent)
+                                        @if($isChildParent)
                                             <span class="block text-xs text-gray-500">{{ $parent->parent->name }}</span>
+                                            <span>{{ $parent->name }}</span>
+                                        @else
+                                            <span>{{ $parent->name }}</span>
+                                            <span class="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-[11px] font-bold text-yellow-700">Main Header</span>
                                         @endif
-                                        <span>{{ $parent->name }}</span>
                                     </span>
                                 </button>
                             @endforeach
+                            <p class="hidden px-4 py-4 text-center text-sm text-gray-500" data-parent-menu-empty>No matching header item found.</p>
                         </div>
                     </div>
                     <select name="parent_id" class="hidden" data-parent-menu-native>
-                        <option value="">Top Level Menu</option>
+                        <option value="">New Main Header</option>
                         @foreach($parents as $parent)
                             <option value="{{ $parent->id }}" @selected($selectedParentId === (string) $parent->id)>
                                 {{ $parent->parent ? $parent->parent->name . ' → ' : '' }}{{ $parent->name }}
                             </option>
                         @endforeach
                     </select>
+                    <p class="mt-1 text-xs text-gray-500">Choose New Main Header for a separate header item, or choose any listed header/dropdown to add inside it.</p>
                 </div>
 
                 <div>
@@ -236,20 +246,6 @@
                     <p class="mt-1 text-xs text-gray-500">This icon appears in the Admin Website Sections menu.</p>
                 </div>
 
-                <div class="rounded-lg border border-indigo-100 bg-indigo-50 p-4">
-                    <label class="flex items-start gap-3 cursor-pointer">
-                        <input type="checkbox"
-                               name="show_in_admin_sidebar"
-                               value="1"
-                               class="mt-1 rounded border-gray-300"
-                               @checked(old('show_in_admin_sidebar', $editMenu->show_in_admin_sidebar ?? false))>
-                        <span>
-                            <strong class="block text-sm text-gray-800">Show in Admin Website Sections</strong>
-                            <span class="block text-xs text-gray-500 mt-1">The top-level item and its subcategories will appear in the admin sidebar.</span>
-                        </span>
-                    </label>
-                </div>
-
                 <div class="md:col-span-2 flex flex-wrap items-center justify-between gap-4 pt-2">
                     <div class="flex flex-wrap gap-5">
                         <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -276,7 +272,6 @@
                             <th class="px-6 py-3 text-sm font-bold text-gray-700">Name</th>
                             <th class="px-6 py-3 text-sm font-bold text-gray-700">Link</th>
                             <th class="px-6 py-3 text-sm font-bold text-gray-700">Order</th>
-                            <th class="px-6 py-3 text-sm font-bold text-gray-700">Admin Sidebar</th>
                             <th class="px-6 py-3 text-sm font-bold text-gray-700">Status</th>
                             <th class="px-6 py-3 text-sm font-bold text-gray-700">Actions</th>
                         </tr>
@@ -287,17 +282,6 @@
                                 <td class="px-6 py-4 font-semibold text-gray-900">{{ $menu->name }}</td>
                                 <td class="px-6 py-4 text-gray-700">{{ $menu->link }}</td>
                                 <td class="px-6 py-4">{{ $menu->sort_order }}</td>
-                                <td class="px-6 py-4">
-                                    <form method="POST" action="{{ route('header-menu.toggle', $menu) }}" data-admin-toggle>
-                                        @csrf
-                                        @method('PATCH')
-                                        <input type="hidden" name="field" value="show_in_admin_sidebar">
-                                        <button type="submit" class="inline-flex items-center gap-2 font-semibold {{ $menu->show_in_admin_sidebar ? 'text-emerald-700' : 'text-gray-400' }}">
-                                            <i class="{{ $menu->icon ?: 'fa-solid fa-folder' }}"></i>
-                                            {{ $menu->show_in_admin_sidebar ? 'Visible' : 'Hidden' }}
-                                        </button>
-                                    </form>
-                                </td>
                                 <td class="px-6 py-4">
                                     <form method="POST" action="{{ route('header-menu.toggle', $menu) }}" data-admin-toggle>
                                         @csrf
@@ -331,9 +315,6 @@
                                     </td>
                                     <td class="px-6 py-4 text-gray-700 break-words">{{ $child->link }}</td>
                                     <td class="px-6 py-4">{{ $child->sort_order }}</td>
-                                    <td class="px-6 py-4 text-gray-500">
-                                        <i class="{{ $child->icon ?: 'fa-solid fa-circle' }} mr-2"></i>With parent
-                                    </td>
                                     <td class="px-6 py-4">
                                         <form method="POST" action="{{ route('header-menu.toggle', $child) }}" data-admin-toggle>
                                             @csrf
@@ -367,9 +348,6 @@
                                                 </td>
                                                 <td class="px-6 py-4 text-gray-700 break-words">{{ $grandchild->link }}</td>
                                                 <td class="px-6 py-4">{{ $grandchild->sort_order }}</td>
-                                                <td class="px-6 py-4 text-blue-600">
-                                                    <i class="fa-solid fa-code-branch mr-2"></i>Under {{ $child->name }}
-                                                </td>
                                                 <td class="px-6 py-4">
                                                     <form method="POST" action="{{ route('header-menu.toggle', $grandchild) }}" data-admin-toggle>
                                                         @csrf
@@ -397,7 +375,7 @@
                                     @endforeach
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-8 text-center text-gray-500">No header menu items yet.</td>
+                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">No header menu items yet.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -418,6 +396,34 @@
 
     <script data-admin-page-script>
         (() => {
+            const menuForm = document.getElementById('header-menu-form');
+            const nameInput = menuForm?.querySelector('[data-menu-name-input]');
+            const linkInput = menuForm?.querySelector('[data-menu-link-input]');
+            let linkEditedByUser = Boolean(linkInput?.value);
+
+            const slugifyMenuName = (value) => value
+                .toString()
+                .trim()
+                .toLowerCase()
+                .replace(/&/g, ' and ')
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+
+            const syncGeneratedLink = () => {
+                if (!menuForm || !nameInput || !linkInput || linkEditedByUser) return;
+
+                const parentId = menuForm.querySelector('[data-parent-menu-native]')?.value;
+                const slug = slugifyMenuName(nameInput.value);
+
+                linkInput.value = parentId && slug ? `/pages/${slug}` : '';
+            };
+
+            nameInput?.addEventListener('input', syncGeneratedLink);
+            linkInput?.addEventListener('input', () => {
+                linkEditedByUser = linkInput.value.trim() !== '';
+                if (!linkEditedByUser) syncGeneratedLink();
+            });
+
             document.querySelectorAll('[data-parent-menu-picker]').forEach((picker) => {
                 const trigger = picker.querySelector('[data-parent-menu-trigger]');
                 const panel = picker.querySelector('[data-parent-menu-panel]');
@@ -425,6 +431,7 @@
                 const nativeSelect = picker.querySelector('[data-parent-menu-native]');
                 const label = picker.querySelector('[data-parent-menu-label]');
                 const options = Array.from(picker.querySelectorAll('[data-parent-menu-option]'));
+                const empty = picker.querySelector('[data-parent-menu-empty]');
 
                 const close = () => {
                     panel.classList.add('hidden');
@@ -436,6 +443,7 @@
                     trigger.setAttribute('aria-expanded', 'true');
                     search.value = '';
                     options.forEach((option) => option.classList.remove('hidden'));
+                    empty?.classList.add('hidden');
                     setTimeout(() => search.focus(), 0);
                 };
 
@@ -445,9 +453,16 @@
 
                 search.addEventListener('input', () => {
                     const query = search.value.trim().toLowerCase();
+                    let visibleCount = 0;
+
                     options.forEach((option) => {
-                        option.classList.toggle('hidden', !option.dataset.label.toLowerCase().includes(query));
+                        const searchText = (option.dataset.search || option.dataset.label || '').toLowerCase();
+                        const isVisible = searchText.includes(query);
+                        option.classList.toggle('hidden', !isVisible);
+                        if (isVisible) visibleCount++;
                     });
+
+                    empty?.classList.toggle('hidden', visibleCount > 0);
                 });
 
                 options.forEach((option) => {
@@ -456,6 +471,7 @@
                         label.textContent = option.dataset.label;
                         options.forEach((item) => item.classList.remove('bg-blue-50', 'text-kasbitBlue', 'font-semibold'));
                         option.classList.add('bg-blue-50', 'text-kasbitBlue', 'font-semibold');
+                        syncGeneratedLink();
                         close();
                     });
                 });

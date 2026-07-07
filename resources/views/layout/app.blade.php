@@ -48,9 +48,130 @@
 
     @yield('content')
 
+    <div class="gallery-lightbox" id="globalImageLightbox" aria-hidden="true">
+        <button type="button" class="gallery-lightbox__backdrop" data-global-image-close aria-label="Close image preview"></button>
+        <div class="gallery-lightbox__stage" role="dialog" aria-modal="true" aria-label="Image preview">
+            <div class="gallery-lightbox__toolbar">
+                <span class="gallery-lightbox__counter" id="globalImageCounter"></span>
+                <div class="gallery-lightbox__actions">
+                    <a href="#" class="gallery-lightbox__button" id="globalImageDownload" download aria-label="Download current image">
+                        <i class="fa-solid fa-download"></i>
+                    </a>
+                    <button type="button" class="gallery-lightbox__button" data-global-image-close aria-label="Close image preview">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="gallery-lightbox__nav gallery-lightbox__nav--prev" data-global-image-prev aria-label="Previous image">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <img src="" alt="" class="gallery-lightbox__image" id="globalImageLightboxImage">
+            <button type="button" class="gallery-lightbox__nav gallery-lightbox__nav--next" data-global-image-next aria-label="Next image">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     @stack('scripts')
     <script>
+        (() => {
+            const lightbox = document.getElementById('globalImageLightbox');
+            const image = document.getElementById('globalImageLightboxImage');
+            const counter = document.getElementById('globalImageCounter');
+            const download = document.getElementById('globalImageDownload');
+            let images = [];
+            let currentIndex = 0;
+
+            if (!lightbox || !image || !download) return;
+
+            const cleanSrc = (src) => (src || '').split('#')[0];
+            const downloadName = (src, alt) => {
+                const file = cleanSrc(src).split('?')[0].split('/').pop();
+                return file || (alt ? alt.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'kasbit-image');
+            };
+            const shouldUseGlobalPreview = (img) => {
+                const src = cleanSrc(img.currentSrc || img.src || '');
+                if (!src.includes('/uploads/')) return false;
+                if (img.closest('.gallery-lightbox, .page-loader, .page-gallery-trigger, [data-document-open]')) return false;
+
+                return true;
+            };
+            const refreshImages = () => {
+                images = Array.from(document.querySelectorAll('img')).filter(shouldUseGlobalPreview);
+                images.forEach((img) => {
+                    img.classList.add('global-preview-image');
+                    img.setAttribute('tabindex', img.getAttribute('tabindex') || '0');
+                    img.setAttribute('role', img.getAttribute('role') || 'button');
+                });
+            };
+            const render = (index) => {
+                if (!images.length) return;
+
+                currentIndex = (index + images.length) % images.length;
+                const item = images[currentIndex];
+                const src = item.currentSrc || item.src;
+                const alt = item.alt || 'KASBIT image';
+
+                image.src = src;
+                image.alt = alt;
+                download.href = src;
+                download.setAttribute('download', downloadName(src, alt));
+                counter.textContent = images.length > 1 ? `${currentIndex + 1} / ${images.length}` : '1 / 1';
+                lightbox.querySelectorAll('.gallery-lightbox__nav').forEach((button) => {
+                    button.hidden = images.length < 2;
+                });
+            };
+            const open = (img) => {
+                refreshImages();
+                const index = images.indexOf(img);
+                if (index === -1) return;
+
+                render(index);
+                lightbox.classList.add('is-open');
+                lightbox.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('gallery-lightbox-open');
+            };
+            const close = () => {
+                lightbox.classList.remove('is-open');
+                lightbox.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('gallery-lightbox-open');
+                image.src = '';
+            };
+
+            document.addEventListener('DOMContentLoaded', refreshImages);
+            document.addEventListener('click', (event) => {
+                const img = event.target.closest('img.global-preview-image');
+                if (!img || !shouldUseGlobalPreview(img)) return;
+
+                const link = img.closest('a[href]');
+                if (link && link.hasAttribute('download')) return;
+
+                event.preventDefault();
+                open(img);
+            });
+            document.addEventListener('keydown', (event) => {
+                if (!lightbox.classList.contains('is-open')) {
+                    const img = event.target.closest?.('img.global-preview-image');
+                    if (img && (event.key === 'Enter' || event.key === ' ')) {
+                        event.preventDefault();
+                        open(img);
+                    }
+                    return;
+                }
+
+                if (event.key === 'Escape') close();
+                if (event.key === 'ArrowLeft') render(currentIndex - 1);
+                if (event.key === 'ArrowRight') render(currentIndex + 1);
+            });
+
+            lightbox.querySelectorAll('[data-global-image-close]').forEach((button) => {
+                button.addEventListener('click', close);
+            });
+            lightbox.querySelector('[data-global-image-prev]')?.addEventListener('click', () => render(currentIndex - 1));
+            lightbox.querySelector('[data-global-image-next]')?.addEventListener('click', () => render(currentIndex + 1));
+        })();
+
         (() => {
             const loader = document.getElementById('pageLoader');
             const startedAt = performance.now();

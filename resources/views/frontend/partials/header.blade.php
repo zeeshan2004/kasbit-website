@@ -127,7 +127,31 @@
                                             </a>
                                             <div class="qec-oric-links">
                                                 @foreach($qecChildren as $child)
-                                                    <a class="dropdown-item" href="{{ $child->link ?: '#' }}">{{ $child->name }}</a>
+                                                    @php
+                                                        $activeGrandchildren = $child->children->where('is_active', true);
+                                                    @endphp
+                                                    <div class="qec-oric-link-group {{ $activeGrandchildren->count() ? 'has-subitems' : '' }}">
+                                                        @if($activeGrandchildren->count())
+                                                            <div class="qec-oric-parent-row">
+                                                                <a class="dropdown-item qec-oric-parent-link" href="{{ $child->link ?: '#' }}">{{ $child->name }}</a>
+                                                                <button type="button"
+                                                                        class="qec-oric-submenu-toggle"
+                                                                        aria-label="Open {{ $child->name }} menu"
+                                                                        aria-expanded="false">
+                                                                    <i class="fa-solid fa-chevron-right"></i>
+                                                                </button>
+                                                            </div>
+                                                        @else
+                                                            <a class="dropdown-item" href="{{ $child->link ?: '#' }}">{{ $child->name }}</a>
+                                                        @endif
+                                                        @if($activeGrandchildren->count())
+                                                            <div class="qec-oric-subitems">
+                                                                @foreach($activeGrandchildren as $grandchild)
+                                                                    <a class="dropdown-item qec-oric-subitem" href="{{ $grandchild->link ?: '#' }}">{{ $grandchild->name }}</a>
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    </div>
                                                 @endforeach
                                             </div>
                                         </section>
@@ -139,7 +163,31 @@
                                             </a>
                                             <div class="qec-oric-links">
                                                 @foreach($oricChildren as $child)
-                                                    <a class="dropdown-item" href="{{ $child->link ?: '#' }}">{{ $child->name }}</a>
+                                                    @php
+                                                        $activeGrandchildren = $child->children->where('is_active', true);
+                                                    @endphp
+                                                    <div class="qec-oric-link-group {{ $activeGrandchildren->count() ? 'has-subitems' : '' }}">
+                                                        @if($activeGrandchildren->count())
+                                                            <div class="qec-oric-parent-row">
+                                                                <a class="dropdown-item qec-oric-parent-link" href="{{ $child->link ?: '#' }}">{{ $child->name }}</a>
+                                                                <button type="button"
+                                                                        class="qec-oric-submenu-toggle"
+                                                                        aria-label="Open {{ $child->name }} menu"
+                                                                        aria-expanded="false">
+                                                                    <i class="fa-solid fa-chevron-right"></i>
+                                                                </button>
+                                                            </div>
+                                                        @else
+                                                            <a class="dropdown-item" href="{{ $child->link ?: '#' }}">{{ $child->name }}</a>
+                                                        @endif
+                                                        @if($activeGrandchildren->count())
+                                                            <div class="qec-oric-subitems">
+                                                                @foreach($activeGrandchildren as $grandchild)
+                                                                    <a class="dropdown-item qec-oric-subitem" href="{{ $grandchild->link ?: '#' }}">{{ $grandchild->name }}</a>
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    </div>
                                                 @endforeach
                                             </div>
                                         </section>
@@ -178,7 +226,9 @@
                                 @endif
                                 <ul class="dropdown-menu {{ $menu->name === 'Programs' ? 'programs-dropdown-menu' : '' }} {{ $hasFlyoutSubmenu ? 'has-flyout-submenu' : '' }}">
                                     @foreach($menu->children->where('is_active', true) as $child)
-                                        @php($activeGrandchildren = $child->children->where('is_active', true))
+                                        @php
+                                            $activeGrandchildren = $child->children->where('is_active', true);
+                                        @endphp
                                         <li class="{{ $activeGrandchildren->count() ? 'program-menu-group' : '' }}">
                                             <?php
                                                 $childLink = $child->name === 'About Us'
@@ -271,12 +321,43 @@
                     });
                 });
 
+                document.querySelectorAll('.qec-oric-submenu-toggle').forEach((button) => {
+                    button.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        const group = button.closest('.qec-oric-link-group');
+                        if (!group) return;
+
+                        const willOpen = !group.classList.contains('is-open');
+
+                        group.closest('.qec-oric-menu')
+                            ?.querySelectorAll('.qec-oric-link-group.is-open')
+                            .forEach((other) => {
+                                if (other !== group) {
+                                    other.classList.remove('is-open');
+                                    other.querySelector('.qec-oric-submenu-toggle')
+                                        ?.setAttribute('aria-expanded', 'false');
+                                }
+                            });
+
+                        group.classList.toggle('is-open', willOpen);
+                        button.setAttribute('aria-expanded', String(willOpen));
+                    });
+                });
+
                 document.addEventListener('click', (event) => {
-                    if (event.target.closest('.program-menu-group')) return;
+                    if (event.target.closest('.program-menu-group, .qec-oric-link-group')) return;
 
                     document.querySelectorAll('.program-menu-group.is-open').forEach((group) => {
                         group.classList.remove('is-open');
                         group.querySelector('.program-submenu-toggle')
+                            ?.setAttribute('aria-expanded', 'false');
+                    });
+
+                    document.querySelectorAll('.qec-oric-link-group.is-open').forEach((group) => {
+                        group.classList.remove('is-open');
+                        group.querySelector('.qec-oric-submenu-toggle')
                             ?.setAttribute('aria-expanded', 'false');
                     });
                 });
