@@ -979,6 +979,13 @@ body.page-loading{
         border-radius:0;
     }
 
+    .header-toggler{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        margin-left:auto;
+    }
+
     .header-navbar .navbar-collapse{
         flex-basis:100%;
         margin:10px -16px 0;
@@ -990,6 +997,15 @@ body.page-loading{
         overflow-y:auto;
         scrollbar-width:none;
         -ms-overflow-style:none;
+    }
+
+    .header-navbar .navbar-collapse:not(.show):not(.collapsing){
+        display:none;
+    }
+
+    .header-navbar .navbar-collapse.show,
+    .header-navbar .navbar-collapse.collapsing{
+        display:block;
     }
 
     .header-navbar .navbar-collapse::-webkit-scrollbar{
@@ -1005,6 +1021,7 @@ body.page-loading{
     }
 
     .header-nav{
+        flex-direction:column;
         align-items:stretch;
         gap:0;
         width:min(100%, 520px);
