@@ -12,6 +12,72 @@
             </div>
         @endif
 
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+            <div class="flex items-center mb-5">
+                <i class="fa-solid fa-spinner text-orange-500 text-xl mr-3"></i>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Loader Settings</h2>
+                    <p class="text-sm text-gray-500 mt-1">Control the loader shown while visitors move between website pages.</p>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('header-menu.loader-settings.update') }}" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                @csrf
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Loader Image</label>
+                    @if($home->loader_logo_url ?? false)
+                        <div class="relative mb-3 inline-block rounded-lg border border-orange-200 bg-orange-50 p-3">
+                            <img src="{{ asset($home->loader_logo_url) }}" alt="Loader image" class="h-20 w-20 object-contain">
+                            <button type="button"
+                                    onclick="document.getElementById('delete_loader_logo').value='1'; this.closest('div').style.display='none';"
+                                    class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg"
+                                    aria-label="Remove loader image">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    @endif
+                    <input type="file"
+                           name="loader_logo"
+                           accept="image/*"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-transparent">
+                    <input type="hidden" name="delete_loader_logo" id="delete_loader_logo" value="0">
+                    <p class="mt-1 text-xs text-gray-500">This image is used only by the public website loader. Header Logo remains separate.</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Loading Text</label>
+                    <input type="text"
+                           name="loader_text"
+                           maxlength="100"
+                           value="{{ old('loader_text', $home->exists ? $home->loader_text : 'Loading...') }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                           placeholder="Loading...">
+                    <p class="mt-1 text-xs text-gray-500">Leave blank to show the loader without text.</p>
+                </div>
+
+                <div class="flex items-end">
+                    <label class="inline-flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 w-full">
+                        <input type="checkbox"
+                               name="loader_is_active"
+                               value="1"
+                               class="rounded border-gray-300 text-orange-500 focus:ring-orange-400"
+                               @checked(old('loader_is_active', $home->exists ? $home->loader_is_active : true))>
+                        <span>
+                            <span class="block text-sm font-semibold text-gray-800">Enable website loader</span>
+                            <span class="block text-xs text-gray-500 mt-0.5">Show it during website page navigation and form submission.</span>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="md:col-span-2 flex justify-end">
+                    <button type="submit" class="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow">
+                        Save Loader Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+
         <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-kasbitBlue">
             <div class="flex items-center mb-5">
                 <i class="fa-solid fa-heading text-kasbitBlue text-xl mr-3"></i>

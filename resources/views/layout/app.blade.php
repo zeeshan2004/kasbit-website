@@ -32,19 +32,29 @@
     <link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ filemtime(public_path('css/home.css')) }}">
 </head>
 <body>
-    <div id="pageLoader" class="page-loader page-loader--hidden" role="status" aria-live="polite" aria-label="Loading page">
-        <div class="page-loader__content">
-            <div class="page-loader__spinner">
-                <span class="page-loader__ring" aria-hidden="true"></span>
-                @if(($home ?? null)?->header_logo_url)
-                    <img src="{{ asset($home->header_logo_url) }}" alt="" class="page-loader__logo">
-                @else
-                    <i class="fa-solid fa-graduation-cap page-loader__fallback-icon" aria-hidden="true"></i>
+    @php
+        $loaderIsActive = (bool) (($home ?? null)?->loader_is_active ?? true);
+        $loaderText = (($home ?? null)?->exists ?? false)
+            ? trim((string) $home->loader_text)
+            : 'Loading...';
+    @endphp
+    @if($loaderIsActive)
+        <div id="pageLoader" class="page-loader page-loader--hidden" role="status" aria-live="polite" aria-label="Loading page">
+            <div class="page-loader__content">
+                <div class="page-loader__spinner">
+                    <span class="page-loader__ring" aria-hidden="true"></span>
+                    @if(($home ?? null)?->loader_logo_url)
+                        <img src="{{ asset($home->loader_logo_url) }}" alt="" class="page-loader__logo">
+                    @else
+                        <i class="fa-solid fa-graduation-cap page-loader__fallback-icon" aria-hidden="true"></i>
+                    @endif
+                </div>
+                @if($loaderText !== '')
+                    <div class="page-loader__text">{{ $loaderText }}</div>
                 @endif
             </div>
-            <div class="page-loader__text">Loading...</div>
         </div>
-    </div>
+    @endif
 
     @yield('content')
 

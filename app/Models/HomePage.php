@@ -42,6 +42,9 @@ class HomePage extends Model
         'video_tour_is_active',
         
         'header_logo',
+        'loader_logo',
+        'loader_is_active',
+        'loader_text',
         'header_phone',
         'header_email',
         'top_location_1_name',
@@ -60,6 +63,7 @@ class HomePage extends Model
 
     protected $casts = [
         'video_tour_is_active' => 'boolean',
+        'loader_is_active' => 'boolean',
         'top_header_is_active' => 'boolean',
     ];
 
@@ -74,5 +78,18 @@ class HomePage extends Model
         }
 
         return 'uploads/home/' . $this->header_logo;
+    }
+
+    public function getLoaderLogoUrlAttribute(): ?string
+    {
+        if (!$this->loader_logo) {
+            return null;
+        }
+
+        if (str_contains($this->loader_logo, '/')) {
+            return $this->loader_logo;
+        }
+
+        return 'uploads/home/' . $this->loader_logo;
     }
 }

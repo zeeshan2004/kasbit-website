@@ -95,6 +95,8 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 
     Route::post('/header-menu/settings', [HeaderMenuController::class, 'updateSettings'])
         ->name('header-menu.settings.update');
+    Route::post('/header-menu/loader-settings', [HeaderMenuController::class, 'updateLoaderSettings'])
+        ->name('header-menu.loader-settings.update');
     Route::patch('/header-menu/{headerMenu}/toggle', [HeaderMenuController::class, 'toggle'])
         ->name('header-menu.toggle');
     Route::get('/header-menu/{headerMenu}/page', [HeaderMenuPageController::class, 'edit'])

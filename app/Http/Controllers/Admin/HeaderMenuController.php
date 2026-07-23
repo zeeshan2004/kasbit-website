@@ -97,6 +97,40 @@ class HeaderMenuController extends Controller
         return $this->menuResponse($request, 'Header settings updated.');
     }
 
+    public function updateLoaderSettings(Request $request)
+    {
+        $data = $request->validate([
+            'loader_logo' => ['nullable', 'image', 'max:2048'],
+            'delete_loader_logo' => ['nullable', 'boolean'],
+            'loader_is_active' => ['nullable', 'boolean'],
+            'loader_text' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $home = HomePage::first() ?? new HomePage();
+        $loaderText = trim((string) ($data['loader_text'] ?? ''));
+
+        if ($request->hasFile('loader_logo')) {
+            $this->deleteLoaderLogoFile($home);
+
+            $home->loader_logo = basename(app(WebpImageOptimizer::class)->store(
+                $request->file('loader_logo'),
+                'uploads/home',
+                time() . '_loader_logo'
+            ));
+        } elseif ($request->boolean('delete_loader_logo')) {
+            $this->deleteLoaderLogoFile($home);
+            $home->loader_logo = null;
+        } elseif ($home->loader_logo && str_contains($home->loader_logo, '/')) {
+            $home->loader_logo = basename($home->loader_logo);
+        }
+
+        $home->loader_is_active = $request->boolean('loader_is_active');
+        $home->loader_text = $loaderText !== '' ? $loaderText : null;
+        $home->save();
+
+        return $this->menuResponse($request, 'Loader settings updated.');
+    }
+
     public function update(Request $request, HeaderMenu $headerMenu)
     {
         $headerMenu->update($this->validatedData($request));
@@ -279,6 +313,21 @@ class HeaderMenuController extends Controller
         $path = str_contains($home->header_logo, '/')
             ? public_path($home->header_logo)
             : public_path('uploads/home/' . $home->header_logo);
+
+        if (file_exists($path)) {
+            unlink($path);
+        }
+    }
+
+    private function deleteLoaderLogoFile(HomePage $home): void
+    {
+        if (!$home->loader_logo) {
+            return;
+        }
+
+        $path = str_contains($home->loader_logo, '/')
+            ? public_path($home->loader_logo)
+            : public_path('uploads/home/' . $home->loader_logo);
 
         if (file_exists($path)) {
             unlink($path);

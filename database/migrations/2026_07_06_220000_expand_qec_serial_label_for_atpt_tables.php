@@ -1,17 +1,22 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('ALTER TABLE program_schema_tables MODIFY qec_serial_label TEXT NULL');
+        Schema::table('program_schema_tables', function (Blueprint $table) {
+            $table->text('qec_serial_label')->nullable()->default(null)->change();
+        });
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE program_schema_tables MODIFY qec_serial_label VARCHAR(50) NOT NULL DEFAULT 'S. No'");
+        Schema::table('program_schema_tables', function (Blueprint $table) {
+            $table->string('qec_serial_label', 50)->nullable(false)->default('S. No')->change();
+        });
     }
 };
