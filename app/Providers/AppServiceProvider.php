@@ -5,8 +5,12 @@ namespace App\Providers;
 use App\Models\FooterSetting;
 use App\Models\HeaderMenu;
 use App\Models\HomePage;
+use App\Models\Query;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Fluent;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -30,10 +34,11 @@ class AppServiceProvider extends ServiceProvider
             if (Schema::hasTable('header_menus')
                 && Schema::hasColumn('header_menus', 'show_in_admin_sidebar')) {
                 $adminWebsiteSections = HeaderMenu::with([
-                    'children' => fn ($query) => $query->where('is_active', true),
-                    'children.children' => fn ($query) => $query->where('is_active', true),
+                    'children' => fn ($query) => $query->forFrontendHeader()->where('is_active', true),
+                    'children.children' => fn ($query) => $query->forFrontendHeader()->where('is_active', true),
                 ])
                     ->whereNull('parent_id')
+                    ->forFrontendHeader()
                     ->where('show_in_admin_sidebar', true)
                     ->where('is_active', true)
                     ->orderBy('sort_order')
@@ -44,30 +49,62 @@ class AppServiceProvider extends ServiceProvider
             $view->with([
                 'adminWebsiteSections' => $adminWebsiteSections,
                 'adminHome' => Schema::hasTable('home_pages') ? HomePage::first() : null,
+                'feedbackPendingCount' => Schema::hasTable('queries')
+                    ? Query::where('status', 'pending')->count()
+                    : 0,
             ]);
         });
 
-        View::composer('frontend.*', function ($view) {
-            $headerMenus = collect();
-
-            if (Schema::hasTable('header_menus')) {
-                $headerMenus = HeaderMenu::with([
-                    'children' => fn ($query) => $query->where('is_active', true),
-                    'children.children' => fn ($query) => $query->where('is_active', true),
-                ])
-                    ->whereNull('parent_id')
-                    ->where('is_active', true)
-                    ->orderBy('sort_order')
-                    ->orderBy('name')
-                    ->get();
-            }
-
+        View::composer('frontend.partials.header', function ($view) {
             $view->with([
-                'headerMenus' => $headerMenus,
-                'footerSetting' => Schema::hasTable('footer_settings')
-                    ? FooterSetting::first()
-                    : null,
+                'headerMenus' => $this->frontendHeaderMenus(),
             ]);
         });
+
+        View::composer('frontend.partials.footer', function ($view) {
+            $view->with([
+                'footerSetting' => $this->frontendFooterSetting(),
+            ]);
+        });
+    }
+
+    private function frontendHeaderMenus(): Collection
+    {
+        $loadMenus = fn () => HeaderMenu::with([
+            'children' => fn ($query) => $query->forFrontendHeader()->where('is_active', true),
+            'children.children' => fn ($query) => $query->forFrontendHeader()->where('is_active', true),
+        ])
+            ->whereNull('parent_id')
+            ->forFrontendHeader()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->toArray();
+
+        $menus = $this->app->environment('testing')
+            ? $loadMenus()
+            : Cache::store('file')->rememberForever(HeaderMenu::FRONTEND_CACHE_KEY, $loadMenus);
+
+        return $this->hydrateMenuItems($menus);
+    }
+
+    private function hydrateMenuItems(array $menus): Collection
+    {
+        return collect($menus)->map(function (array $menu): Fluent {
+            $menu['children'] = $this->hydrateMenuItems($menu['children'] ?? []);
+
+            return new Fluent($menu);
+        });
+    }
+
+    private function frontendFooterSetting(): ?Fluent
+    {
+        $loadFooter = fn () => FooterSetting::first()?->toArray() ?? [];
+        $footer = $this->app->environment('testing')
+            ? $loadFooter()
+            : Cache::store('file')->rememberForever(FooterSetting::FRONTEND_CACHE_KEY, $loadFooter);
+
+        return $footer === [] ? null : new Fluent($footer);
     }
 }

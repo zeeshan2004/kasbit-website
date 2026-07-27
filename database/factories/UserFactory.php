@@ -27,6 +27,12 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'role' => 'admin',
+            'student_id' => null,
+            'program_id' => null,
+            'department_id' => null,
+            'semester' => null,
+            'is_active' => true,
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
@@ -40,6 +46,16 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    public function student(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'student',
+            'email' => fake()->unique()->userName().'@kasbit.edu.pk',
+            'student_id' => 'KASBIT-'.fake()->unique()->numerify('#####'),
+            'semester' => 'Semester '.fake()->numberBetween(1, 8),
         ]);
     }
 }

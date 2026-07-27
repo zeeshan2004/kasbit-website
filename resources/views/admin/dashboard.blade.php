@@ -1,58 +1,87 @@
 <x-admin-layout>
-    <x-slot name="title">
-        Dashboard - KASBIT Control
-    </x-slot>
+    <x-slot name="title">Dashboard - KASBIT Control</x-slot>
+    <x-slot name="header">Dashboard</x-slot>
 
-    <x-slot name="header">
-        System Overview
-    </x-slot>
-
-    <!-- STATS CARDS GRID -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        
-        <!-- Pending Users Card -->
-        <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-md text-white p-6 relative overflow-hidden transform hover:scale-[1.02] transition duration-200">
-            <div class="relative z-10">
-                <p class="text-blue-100 text-sm font-medium uppercase tracking-wider">Pending Users</p>
-                <h3 class="text-4xl font-bold mt-2">2</h3>
+    <div class="management-page">
+        <div class="management-heading">
+            <div>
+                <h3>Feedback Overview</h3>
+                <p>Live student accounts and query activity across all departments.</p>
             </div>
-            <div class="absolute right-4 bottom-4 text-blue-500/30 text-6xl font-bold">
-                <i class="fa-solid fa-user-clock"></i>
-            </div>
+            <a href="{{ route('admin.queries.index') }}" class="admin-button admin-button--primary">
+                <i class="fa-solid fa-comments" aria-hidden="true"></i>
+                View Queries
+            </a>
         </div>
 
-        <!-- Orders / Queries Card -->
-        <div class="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl shadow-md text-white p-6 relative overflow-hidden transform hover:scale-[1.02] transition duration-200">
-            <div class="relative z-10">
-                <p class="text-emerald-100 text-sm font-medium uppercase tracking-wider">Total Active Queries</p>
-                <h3 class="text-4xl font-bold mt-2">12</h3>
-            </div>
-            <div class="absolute right-4 bottom-4 text-emerald-500/30 text-6xl font-bold">
-                <i class="fa-solid fa-comments"></i>
-            </div>
+        <div class="management-stats">
+            <a href="{{ route('admin.queries.index') }}" class="management-stat management-stat--total">
+                <span>Total Queries</span>
+                <strong>{{ $queryCounts['total'] }}</strong>
+                <i class="fa-solid fa-inbox" aria-hidden="true"></i>
+            </a>
+            <a href="{{ route('admin.queries.index', ['status' => 'pending']) }}" class="management-stat management-stat--pending">
+                <span>Pending</span>
+                <strong>{{ $queryCounts['pending'] }}</strong>
+                <i class="fa-solid fa-clock" aria-hidden="true"></i>
+            </a>
+            <a href="{{ route('admin.queries.index', ['status' => 'in_progress']) }}" class="management-stat management-stat--progress">
+                <span>In Progress</span>
+                <strong>{{ $queryCounts['in_progress'] }}</strong>
+                <i class="fa-solid fa-spinner" aria-hidden="true"></i>
+            </a>
+            <a href="{{ route('admin.queries.index', ['status' => 'resolved']) }}" class="management-stat management-stat--resolved">
+                <span>Resolved</span>
+                <strong>{{ $queryCounts['resolved'] }}</strong>
+                <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+            </a>
         </div>
 
-        <!-- Total Products Card -->
-        <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-md text-white p-6 relative overflow-hidden transform hover:scale-[1.02] transition duration-200">
-            <div class="relative z-10">
-                <p class="text-amber-500 text-sm font-medium uppercase tracking-wider text-amber-50">Total Programs / Products</p>
-                <h3 class="text-4xl font-bold mt-2">15</h3>
+        <section class="management-panel">
+            <div class="management-panel-header">
+                <h4>Recent Queries</h4>
+                <span class="admin-status admin-status--student">{{ $totalStudents }} Students</span>
             </div>
-            <div class="absolute right-4 bottom-4 text-amber-400/30 text-6xl font-bold">
-                <i class="fa-solid fa-graduation-cap"></i>
+
+            <div class="admin-table-wrap">
+                <table class="admin-data-table">
+                    <thead>
+                        <tr>
+                            <th>Query ID</th>
+                            <th>Name</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($recentQueries as $query)
+                            <tr>
+                                <td><span class="admin-table-primary">{{ $query->query_code }}</span></td>
+                                <td>{{ $query->name }}</td>
+                                <td>{{ $query->department->name }}</td>
+                                <td>
+                                    <span class="admin-status admin-status--{{ $query->status }}">
+                                        {{ $query->status_label }}
+                                    </span>
+                                </td>
+                                <td>{{ $query->created_at->format('d M Y') }}</td>
+                                <td>
+                                    <a href="{{ route('admin.queries.show', $query) }}" class="admin-button admin-button--secondary">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="admin-empty-state">No feedback queries have been submitted.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-        </div>
-
-    </div>
-
-    <!-- BRIEF DATA TABLE OR SYSTEM INFO -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div class="flex items-center justify-between mb-4 border-b pb-4">
-            <h4 class="text-lg font-bold text-gray-800">Quick Actions & Recent Activity</h4>
-            <span class="text-xs bg-kasbitBlue/10 text-kasbitBlue px-2.5 py-1 rounded-full font-semibold">Active Session</span>
-        </div>
-        <p class="text-gray-600 text-sm leading-relaxed">
-            Welcome back! component architectural structural setup is ready. dynamic backend data directly controller variables ke through inject kar sakte hain.
-        </p>
+        </section>
     </div>
 </x-admin-layout>

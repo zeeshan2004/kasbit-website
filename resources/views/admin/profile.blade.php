@@ -1,4 +1,11 @@
 <x-admin-layout title="Admin Profile - KASBIT Control" header="Admin Profile">
+    @php
+        $profileInitials = collect(preg_split('/\s+/', trim($user->name ?? 'KASBIT Admin')) ?: [])
+            ->filter()
+            ->take(2)
+            ->map(fn ($part) => str($part)->substr(0, 1)->upper())
+            ->implode('') ?: 'KA';
+    @endphp
     <div class="max-w-4xl mx-auto space-y-6">
         @if(session('success'))
             <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
@@ -8,9 +15,7 @@
 
         <section class="bg-white rounded-lg shadow-md border-l-4 border-kasbitBlue p-6">
             <div class="flex items-center gap-4 mb-6">
-                <img src="https://ui-avatars.com/api/?name={{ urlencode($user->name ?? 'KASBIT Admin') }}&background=0d47a1&color=fff"
-                     alt="Admin"
-                     class="w-14 h-14 rounded-full">
+                <span class="admin-user-avatar admin-user-avatar--profile" aria-hidden="true">{{ $profileInitials }}</span>
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900">KASBIT Admin</h1>
                     <p class="text-sm text-gray-500">Change login email and password from here.</p>

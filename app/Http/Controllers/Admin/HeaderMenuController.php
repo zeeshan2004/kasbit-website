@@ -15,7 +15,7 @@ class HeaderMenuController extends Controller
     public function index()
     {
         return view('admin.cms.header-menu', [
-            'menus' => HeaderMenu::with('children.children')->whereNull('parent_id')->orderBy('sort_order')->orderBy('name')->get(),
+            'menus' => $this->headerMenuTree(),
             'parents' => $this->availableParents(),
             'editMenu' => null,
             'home' => HomePage::first() ?? new HomePage(),
@@ -33,7 +33,7 @@ class HeaderMenuController extends Controller
     public function edit(HeaderMenu $headerMenu)
     {
         return view('admin.cms.header-menu', [
-            'menus' => HeaderMenu::with('children.children')->whereNull('parent_id')->orderBy('sort_order')->orderBy('name')->get(),
+            'menus' => $this->headerMenuTree(),
             'parents' => $this->availableParents($headerMenu),
             'editMenu' => $headerMenu,
             'home' => HomePage::first() ?? new HomePage(),
@@ -58,6 +58,8 @@ class HeaderMenuController extends Controller
             'header_twitter_url' => ['nullable', 'string', 'max:2048'],
             'header_instagram_url' => ['nullable', 'string', 'max:2048'],
             'top_header_is_active' => ['nullable', 'boolean'],
+            'cursor_is_active' => ['nullable', 'boolean'],
+            'cursor_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'delete_header_logo' => ['nullable', 'boolean'],
         ]);
 
@@ -92,6 +94,8 @@ class HeaderMenuController extends Controller
         $home->header_twitter_url = $request->input('header_twitter_url');
         $home->header_instagram_url = $request->input('header_instagram_url');
         $home->top_header_is_active = $request->boolean('top_header_is_active');
+        $home->cursor_is_active = $request->boolean('cursor_is_active');
+        $home->cursor_color = strtolower($request->input('cursor_color', '#ffcc00'));
         $home->save();
 
         return $this->menuResponse($request, 'Header settings updated.');
@@ -206,6 +210,7 @@ class HeaderMenuController extends Controller
         $data['link'] = $this->normalizeLink($data['link'] ?? null);
         $data['icon'] = $data['icon'] ?: 'fa-solid fa-folder';
         $data['show_in_admin_sidebar'] = empty($data['parent_id']);
+        $data['management_context'] = 'header';
         $data['sort_order'] = $data['sort_order'] ?? 0;
         $data['is_active'] = $request->boolean('is_active');
 
@@ -344,10 +349,12 @@ class HeaderMenuController extends Controller
         }
 
         return HeaderMenu::with(['children' => fn ($query) => $query
+                ->forFrontendHeader()
                 ->orderBy('sort_order')
                 ->orderBy('name')
             ])
             ->whereNull('parent_id')
+            ->forFrontendHeader()
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
@@ -362,6 +369,19 @@ class HeaderMenuController extends Controller
                 return $blockedIds->contains($candidate->id);
             })
             ->values();
+    }
+
+    private function headerMenuTree()
+    {
+        return HeaderMenu::with([
+            'children' => fn ($query) => $query->forFrontendHeader(),
+            'children.children' => fn ($query) => $query->forFrontendHeader(),
+        ])
+            ->whereNull('parent_id')
+            ->forFrontendHeader()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
     }
 
     private function menuBranchIds(HeaderMenu $menu): \Illuminate\Support\Collection

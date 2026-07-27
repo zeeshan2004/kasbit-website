@@ -101,6 +101,33 @@
                     <input type="hidden" name="delete_header_logo" id="delete_header_logo" value="0">
                 </div>
 
+                <div class="md:col-span-2 border-t border-gray-200 pt-5 mt-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="cursor-color" class="block text-sm font-semibold text-gray-700 mb-2">Website Cursor Color</label>
+                            <div class="flex items-center gap-3">
+                                <input id="cursor-color"
+                                       type="color"
+                                       name="cursor_color"
+                                       value="{{ old('cursor_color', $home->cursor_color ?? '#ffcc00') }}"
+                                       class="h-11 w-16 rounded-lg border border-gray-300 bg-white p-1">
+                                <span class="text-sm text-gray-500">{{ old('cursor_color', $home->cursor_color ?? '#ffcc00') }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-end">
+                            <label class="inline-flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 w-full">
+                                <input type="checkbox"
+                                       name="cursor_is_active"
+                                       value="1"
+                                       class="rounded border-gray-300 text-kasbitBlue focus:ring-kasbitBlue"
+                                       @checked(old('cursor_is_active', $home->exists ? $home->cursor_is_active : true))>
+                                <span class="text-sm font-semibold text-gray-800">Enable website cursor effect</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Contact Phone</label>
                     <input type="text" name="header_phone" value="{{ old('header_phone', $home->header_phone ?? '') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kasbitBlue focus:border-transparent" placeholder="+92 XXX XXXXXXX">
@@ -198,17 +225,17 @@
                         : 'New Main Header';
                 @endphp
 
-                <div class="relative" data-parent-menu-picker>
+                <div data-parent-menu-picker>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Add Under Dropdown</label>
                     <button type="button"
                             class="w-full min-h-[42px] px-4 py-2 border border-gray-300 rounded-lg bg-white text-left flex items-center justify-between gap-3 focus:ring-2 focus:ring-kasbitBlue focus:border-transparent"
                             data-parent-menu-trigger
                             aria-expanded="false">
                         <span class="truncate" data-parent-menu-label>{{ $selectedParentLabel }}</span>
-                        <i class="fa-solid fa-chevron-down text-gray-500 text-xs shrink-0"></i>
+                        <i class="fa-solid fa-chevron-down text-gray-500 text-xs shrink-0" data-parent-menu-chevron></i>
                     </button>
 
-                    <div class="hidden absolute left-0 right-0 top-full z-50 mt-2 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden" data-parent-menu-panel>
+                    <div class="hidden mt-2 rounded-lg border border-gray-200 bg-white shadow-xl overflow-hidden" data-parent-menu-panel>
                         <div class="p-3 border-b border-gray-100">
                             <input type="search"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-kasbitBlue focus:border-transparent"
@@ -256,7 +283,7 @@
                         <option value="">New Main Header</option>
                         @foreach($parents as $parent)
                             <option value="{{ $parent->id }}" @selected($selectedParentId === (string) $parent->id)>
-                                {{ $parent->parent ? $parent->parent->name . ' → ' : '' }}{{ $parent->name }}
+                                {{ $parent->parent ? $parent->parent->name . ' / ' : '' }}{{ $parent->name }}
                             </option>
                         @endforeach
                     </select>
@@ -274,7 +301,7 @@
                     $selectedIconLabel = $iconOptions[$selectedIcon] ?? 'General / Folder';
                 @endphp
 
-                <div class="relative" data-icon-picker>
+                <div data-icon-picker>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Admin Sidebar Icon</label>
                     <button type="button"
                             class="w-full min-h-[42px] px-4 py-2 border border-gray-300 rounded-lg bg-white text-left flex items-center justify-between gap-3 focus:ring-2 focus:ring-kasbitBlue focus:border-transparent"
@@ -284,10 +311,10 @@
                             <i class="{{ $selectedIcon }} text-kasbitBlue w-4 shrink-0" data-icon-preview></i>
                             <span class="truncate" data-icon-label>{{ $selectedIconLabel }}</span>
                         </span>
-                        <i class="fa-solid fa-chevron-down text-gray-500 text-xs shrink-0"></i>
+                        <i class="fa-solid fa-chevron-down text-gray-500 text-xs shrink-0" data-icon-chevron></i>
                     </button>
 
-                    <div class="hidden absolute left-0 right-0 top-full z-50 mt-2 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden" data-icon-panel>
+                    <div class="hidden mt-2 rounded-lg border border-gray-200 bg-white shadow-xl overflow-hidden" data-icon-panel>
                         <div class="max-h-72 overflow-y-auto p-2 custom-scroll-hidden">
                             @foreach($iconOptions as $icon => $label)
                                 <button type="button"
@@ -457,6 +484,16 @@
 
         .custom-scroll-hidden::-webkit-scrollbar {
             display: none;
+        }
+
+        [data-parent-menu-chevron],
+        [data-icon-chevron] {
+            transition: transform 150ms ease;
+        }
+
+        [data-parent-menu-trigger][aria-expanded="true"] [data-parent-menu-chevron],
+        [data-icon-trigger][aria-expanded="true"] [data-icon-chevron] {
+            transform: rotate(180deg);
         }
     </style>
 

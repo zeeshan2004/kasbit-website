@@ -5,23 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'KASBIT Admin Panel' }}</title>
     <link rel="stylesheet" href="{{ asset('css/admin-fallback.css') }}?v={{ filemtime(public_path('css/admin-fallback.css')) }}">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        if (window.tailwind) {
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        colors: {
-                            kasbitBlue: '#0d47a1',
-                            kasbitDark: '#0a2540',
-                            kasbitGold: '#ffcc00',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="{{ asset('css/admin-feedback.css') }}?v={{ filemtime(public_path('css/admin-feedback.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/admin-tailwind.css') }}?v={{ filemtime(public_path('css/admin-tailwind.css')) }}">
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}?v={{ filemtime(public_path('vendor/fontawesome/css/all.min.css')) }}">
     <style>
         /* Invisible scrollbar functionality */
         .no-scrollbar::-webkit-scrollbar {
@@ -69,7 +55,8 @@
         aside nav .dropdown-container a span,
         aside nav .dropdown-container button span {
             min-width: 0;
-            overflow-wrap: anywhere;
+            overflow-wrap: break-word;
+            word-break: normal;
         }
 
         [data-admin-page-link] {
@@ -117,7 +104,8 @@
             min-width: 0;
             flex: 1 1 auto;
             color: #ffcc00;
-            overflow-wrap: anywhere;
+            overflow-wrap: break-word;
+            word-break: normal;
         }
 
         #admin-website-sections .dropdown-container > div > .flex > button {
@@ -266,6 +254,33 @@
             opacity: .82;
         }
 
+        .admin-user-avatar {
+            width: 32px;
+            height: 32px;
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: #0d47a1;
+            color: #fff;
+            font-size: .72rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .admin-user-avatar--large {
+            width: 40px;
+            height: 40px;
+            font-size: .8rem;
+        }
+
+        .admin-user-avatar--profile {
+            width: 56px;
+            height: 56px;
+            font-size: 1rem;
+        }
+
         .admin-user-dropdown {
             position: absolute;
             top: calc(100% + .65rem);
@@ -291,7 +306,8 @@
             border-bottom: 1px solid rgba(255, 255, 255, .08);
         }
 
-        .admin-user-card img {
+        .admin-user-card img,
+        .admin-user-card .admin-user-avatar {
             width: 40px;
             height: 40px;
             border-radius: 999px;
@@ -358,38 +374,100 @@
         </div>
     </div>
 
+    <div id="admin-confirm-modal"
+         class="admin-confirm-modal"
+         aria-hidden="true"
+         hidden>
+        <button type="button"
+                class="admin-confirm-backdrop"
+                data-admin-confirm-cancel
+                aria-label="Cancel action"></button>
+        <div class="admin-confirm-dialog"
+             role="alertdialog"
+             aria-modal="true"
+             aria-labelledby="admin-confirm-title"
+             aria-describedby="admin-confirm-message">
+            <span class="admin-confirm-icon" aria-hidden="true">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </span>
+            <h2 id="admin-confirm-title">Confirm Action</h2>
+            <p id="admin-confirm-message"></p>
+            <div class="admin-confirm-actions">
+                <button type="button"
+                        class="admin-button admin-button--secondary"
+                        data-admin-confirm-cancel>
+                    Cancel
+                </button>
+                <button type="button"
+                        class="admin-button admin-button--danger"
+                        data-admin-confirm-accept>
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Sidebar Start -->
-    <aside class="w-72 bg-kasbitDark text-gray-300 flex flex-col justify-between shadow-xl z-10 overflow-y-auto no-scrollbar">
+    <aside id="admin-sidebar"
+           class="w-72 bg-kasbitDark text-gray-300 flex flex-col justify-between shadow-xl z-10 overflow-y-auto no-scrollbar"
+           aria-label="Admin navigation">
         <div>
             <!-- Sidebar Header -->
             <div class="p-5 flex items-center space-x-3 border-b border-gray-700 bg-kasbitBlue text-white sticky top-0 z-20">
                 <i class="fa-solid fa-graduation-cap text-2xl text-kasbitGold"></i>
                 <span class="font-bold text-lg tracking-wider"> ADMIN</span>
+                <button type="button"
+                        class="admin-sidebar-close"
+                        data-admin-sidebar-close
+                        aria-label="Close navigation">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
             </div>
 
             <!-- Navigation Links -->
             <nav class="p-4 space-y-1">
 
                 <a href="{{ route('admin.dashboard') }}"
-                   class="flex items-center space-x-3 px-4 py-3 rounded-lg {{ Request::is('admin/dashboard') ? 'bg-kasbitBlue text-white font-medium shadow-md' : 'hover:bg-gray-800 hover:text-white transition' }}">
+                   data-admin-primary-link
+                   data-admin-match="exact"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg {{ request()->routeIs('admin.dashboard') ? 'bg-kasbitBlue text-white font-medium shadow-md' : 'hover:bg-gray-800 hover:text-white transition' }}">
                     <i class="fa-solid fa-chart-pie w-5 text-center text-base"></i>
                     <span>Dashboard</span>
                 </a>
 
-                <a href="{{ route('admin.profile.edit') }}"
-                   class="flex items-center space-x-3 px-4 py-3 rounded-lg {{ Request::is('admin/profile') ? 'bg-kasbitBlue text-white font-medium shadow-md' : 'hover:bg-gray-800 hover:text-white transition' }}">
-                    <i class="fa-solid fa-user-gear w-5 text-center text-base"></i>
-                    <span>Edit Profile</span>
-                </a>
-
-                <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 hover:text-white transition">
+                <a href="{{ route('admin.users.index') }}"
+                   data-admin-primary-link
+                   data-admin-match="prefix"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg {{ request()->routeIs('admin.users.*') ? 'bg-kasbitBlue text-white font-medium shadow-md' : 'hover:bg-gray-800 hover:text-white transition' }}">
                     <i class="fa-solid fa-users w-5 text-center text-base"></i>
                     <span>All Users</span>
                 </a>
 
-                <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 hover:text-white transition">
-                    <i class="fa-solid fa-user-clock w-5 text-center text-base"></i>
-                    <span>Pending Users</span>
+                <a href="{{ route('admin.departments.index') }}"
+                   data-admin-primary-link
+                   data-admin-match="prefix"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg {{ request()->routeIs('admin.departments.*') ? 'bg-kasbitBlue text-white font-medium shadow-md' : 'hover:bg-gray-800 hover:text-white transition' }}">
+                    <i class="fa-solid fa-building-columns w-5 text-center text-base"></i>
+                    <span>Feedback Departments</span>
+                </a>
+
+                <a href="{{ route('admin.programs.index') }}"
+                   data-admin-primary-link
+                   data-admin-match="prefix"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg {{ request()->routeIs('admin.programs.*') ? 'bg-kasbitBlue text-white font-medium shadow-md' : 'hover:bg-gray-800 hover:text-white transition' }}">
+                    <i class="fa-solid fa-graduation-cap w-5 text-center text-base"></i>
+                    <span>Programs &amp; Courses</span>
+                </a>
+
+                <a href="{{ route('admin.queries.index') }}"
+                   data-admin-primary-link
+                   data-admin-match="prefix"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg {{ request()->routeIs('admin.queries.*') ? 'bg-kasbitBlue text-white font-medium shadow-md' : 'hover:bg-gray-800 hover:text-white transition' }}">
+                    <i class="fa-solid fa-comments w-5 text-center text-base"></i>
+                    <span>Queries</span>
+                    @if(($feedbackPendingCount ?? 0) > 0)
+                        <span class="admin-nav-badge">{{ $feedbackPendingCount > 99 ? '99+' : $feedbackPendingCount }}</span>
+                    @endif
                 </a>
 
                 <div class="pt-4 pb-1">
@@ -411,7 +489,7 @@
                                     </a>
                                     <button type="button"
                                             onclick="toggleDD('{{ $sectionId }}')"
-                                            class="flex items-center justify-center self-stretch px-4 text-gray-400 hover:text-white focus:outline-none"
+                                            class="admin-nav-chevron flex items-center justify-center self-stretch px-4 text-gray-400 hover:text-white focus:outline-none"
                                             aria-label="Open {{ $section->name }} subcategories">
                                         <i id="chevron-{{ $sectionId }}" class="fa-solid fa-chevron-down text-xs chevron"></i>
                                     </button>
@@ -431,7 +509,7 @@
                                                 @if($child->children->count())
                                                     <button type="button"
                                                             onclick="toggleNestedDD('{{ $childSectionId }}', '{{ $sectionId }}')"
-                                                            class="self-stretch px-3 text-gray-500 hover:text-white"
+                                                            class="admin-nav-chevron admin-nav-chevron--nested self-stretch px-3 text-gray-500 hover:text-white"
                                                             aria-label="Open {{ $child->name }} programs">
                                                         <i id="chevron-{{ $childSectionId }}" class="fa-solid fa-chevron-down text-[9px] chevron"></i>
                                                     </button>
@@ -795,37 +873,56 @@
     </aside>
     <!-- Sidebar End -->
 
+    <button type="button"
+            class="admin-sidebar-backdrop"
+            data-admin-sidebar-close
+            aria-label="Close navigation"
+            tabindex="-1"></button>
+
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col overflow-hidden">
         <header class="h-16 bg-white border-b flex items-center justify-between px-6 shadow-sm">
-            <h2 id="admin-page-heading" class="text-xl font-semibold text-gray-800">{{ $header ?? 'Dashboard Overview' }}</h2>
+            <div class="admin-header-title">
+                <button type="button"
+                        class="admin-sidebar-toggle"
+                        data-admin-sidebar-toggle
+                        aria-controls="admin-sidebar"
+                        aria-expanded="false"
+                        aria-label="Open navigation">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+                <h2 id="admin-page-heading" class="text-xl font-semibold text-gray-800">{{ $header ?? 'Dashboard Overview' }}</h2>
+            </div>
+            @php
+                $adminDisplayName = Auth::user()->name ?? 'KASBIT Admin';
+                $adminInitials = collect(preg_split('/\s+/', trim($adminDisplayName)) ?: [])
+                    ->filter()
+                    ->take(2)
+                    ->map(fn ($part) => str($part)->substr(0, 1)->upper())
+                    ->implode('');
+                $adminInitials = $adminInitials ?: 'KA';
+            @endphp
             <div class="admin-user-menu" data-admin-user-menu>
                 <button type="button"
                         class="admin-user-trigger"
                         data-admin-user-trigger
                         aria-expanded="false"
                         aria-haspopup="true">
-                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? 'Admin') }}&background=0d47a1&color=fff"
-                         alt="User" class="w-8 h-8 rounded-full">
+                    <span class="admin-user-avatar" aria-hidden="true">{{ $adminInitials }}</span>
                     <span class="text-sm font-medium text-gray-700 hidden md:inline-block">
-                        {{ Auth::user()->name ?? 'KASBIT Admin' }}
+                        {{ $adminDisplayName }}
                     </span>
                     <i class="fa-solid fa-chevron-down text-xs text-gray-400"></i>
                 </button>
 
                 <div class="admin-user-dropdown" data-admin-user-dropdown hidden>
                     <div class="admin-user-card">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? 'Admin') }}&background=0d47a1&color=fff" alt="">
+                        <span class="admin-user-avatar admin-user-avatar--large" aria-hidden="true">{{ $adminInitials }}</span>
                         <div class="min-w-0">
-                            <strong>{{ Auth::user()->name ?? 'KASBIT Admin' }}</strong>
+                            <strong>{{ $adminDisplayName }}</strong>
                             <span>{{ Auth::user()->email ?? 'admin@kasbit.com' }}</span>
                         </div>
                     </div>
-
-                    <a href="{{ route('admin.profile.edit') }}">
-                        <i class="fa-solid fa-user-gear"></i>
-                        <span>Profile Settings</span>
-                    </a>
 
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
@@ -845,6 +942,49 @@
 
     <!-- JavaScript logic handling multi-level toggles -->
     <script>
+        (() => {
+            const body = document.body;
+            const sidebar = document.getElementById('admin-sidebar');
+            const toggle = document.querySelector('[data-admin-sidebar-toggle]');
+            const closeControls = document.querySelectorAll('[data-admin-sidebar-close]');
+            const mobileSidebar = window.matchMedia('(max-width: 1023.98px)');
+
+            if (!sidebar || !toggle) return;
+
+            const setSidebarOpen = (isOpen) => {
+                const shouldOpen = mobileSidebar.matches && isOpen;
+
+                body.classList.toggle('admin-sidebar-open', shouldOpen);
+                toggle.setAttribute('aria-expanded', String(shouldOpen));
+                toggle.setAttribute('aria-label', shouldOpen ? 'Close navigation' : 'Open navigation');
+                sidebar.setAttribute('aria-hidden', String(mobileSidebar.matches && !shouldOpen));
+            };
+
+            toggle.addEventListener('click', () => {
+                setSidebarOpen(!body.classList.contains('admin-sidebar-open'));
+            });
+
+            closeControls.forEach((control) => {
+                control.addEventListener('click', () => setSidebarOpen(false));
+            });
+
+            sidebar.addEventListener('click', (event) => {
+                if (mobileSidebar.matches && event.target.closest('a[href]')) {
+                    setSidebarOpen(false);
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && body.classList.contains('admin-sidebar-open')) {
+                    setSidebarOpen(false);
+                    toggle.focus();
+                }
+            });
+
+            mobileSidebar.addEventListener('change', () => setSidebarOpen(false));
+            setSidebarOpen(false);
+        })();
+
         document.querySelectorAll('[data-admin-user-menu]').forEach((menu) => {
             const trigger = menu.querySelector('[data-admin-user-trigger]');
             const dropdown = menu.querySelector('[data-admin-user-dropdown]');
@@ -941,11 +1081,51 @@
         (() => {
             const toast = document.getElementById('admin-toast');
             const adminLoader = document.getElementById('admin-loader');
+            const confirmModal = document.getElementById('admin-confirm-modal');
+            const confirmMessage = document.getElementById('admin-confirm-message');
+            const confirmAccept = confirmModal?.querySelector('[data-admin-confirm-accept]');
+            const confirmCancelControls = confirmModal?.querySelectorAll('[data-admin-confirm-cancel]') ?? [];
             let toastTimer;
             let activeToggleRequests = 0;
             let toggleSyncTimer;
             let activeLoaderRequests = 0;
             let adminLoaderTimer;
+
+            const requestConfirmation = (message) => new Promise((resolve) => {
+                if (!confirmModal || !confirmMessage || !confirmAccept) {
+                    resolve(false);
+                    return;
+                }
+
+                confirmMessage.textContent = message;
+                confirmModal.hidden = false;
+                confirmModal.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('admin-confirm-open');
+                confirmAccept.focus();
+
+                const finish = (confirmed) => {
+                    confirmModal.hidden = true;
+                    confirmModal.setAttribute('aria-hidden', 'true');
+                    document.body.classList.remove('admin-confirm-open');
+                    confirmAccept.removeEventListener('click', accept);
+                    confirmCancelControls.forEach((control) => {
+                        control.removeEventListener('click', cancel);
+                    });
+                    document.removeEventListener('keydown', onKeydown);
+                    resolve(confirmed);
+                };
+                const accept = () => finish(true);
+                const cancel = () => finish(false);
+                const onKeydown = (event) => {
+                    if (event.key === 'Escape') cancel();
+                };
+
+                confirmAccept.addEventListener('click', accept);
+                confirmCancelControls.forEach((control) => {
+                    control.addEventListener('click', cancel);
+                });
+                document.addEventListener('keydown', onKeydown);
+            });
 
             const showAdminLoader = () => {
                 activeLoaderRequests++;
@@ -1019,6 +1199,26 @@
                 firstInvalidField?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             };
 
+            const updatePrimaryNavigation = (responseUrl) => {
+                if (!responseUrl) return;
+
+                const currentPath = new URL(responseUrl, window.location.origin).pathname.replace(/\/+$/, '');
+
+                document.querySelectorAll('[data-admin-primary-link]').forEach((item) => {
+                    const itemPath = new URL(item.href, window.location.origin).pathname.replace(/\/+$/, '');
+                    const isActive = item.dataset.adminMatch === 'prefix'
+                        ? currentPath === itemPath || currentPath.startsWith(itemPath + '/')
+                        : currentPath === itemPath;
+
+                    item.classList.toggle('bg-kasbitBlue', isActive);
+                    item.classList.toggle('text-white', isActive);
+                    item.classList.toggle('font-medium', isActive);
+                    item.classList.toggle('shadow-md', isActive);
+                    item.classList.toggle('hover:bg-gray-800', !isActive);
+                    item.classList.toggle('hover:text-white', !isActive);
+                });
+            };
+
             const refreshMainContent = (html, responseUrl, options = {}) => {
                 const { refreshSidebar = true, pushHistory = false } = options;
                 const parsed = new DOMParser().parseFromString(html, 'text/html');
@@ -1042,6 +1242,8 @@
                 if (nextHeading && currentHeading) {
                     currentHeading.textContent = nextHeading.textContent;
                 }
+
+                updatePrimaryNavigation(responseUrl);
 
                 parsed.querySelectorAll('script[data-admin-page-script]').forEach((script) => {
                     try {
@@ -1137,12 +1339,20 @@
                     return;
                 }
 
-                if (form.dataset.confirmMessage && !window.confirm(form.dataset.confirmMessage)) {
+                if (form.dataset.confirmMessage && form.dataset.confirmed !== 'true') {
                     event.preventDefault();
                     event.stopImmediatePropagation();
+
+                    const submitter = event.submitter;
+                    if (await requestConfirmation(form.dataset.confirmMessage)) {
+                        form.dataset.confirmed = 'true';
+                        form.requestSubmit(submitter);
+                    }
+
                     return;
                 }
 
+                delete form.dataset.confirmed;
                 event.preventDefault();
 
                 if (form.matches('[data-admin-toggle]')) {
@@ -1163,15 +1373,31 @@
                 showAdminLoader();
 
                 try {
-                    const response = await fetch(form.action, {
-                        method: (form.method || 'POST').toUpperCase(),
-                        body: new FormData(form),
+                    const method = (form.method || 'POST').toUpperCase();
+                    const formData = new FormData(form);
+                    const requestUrl = new URL(form.action, window.location.href);
+                    const requestOptions = {
+                        method,
                         headers: {
                             'Accept': 'application/json, text/html',
                             'X-Requested-With': 'XMLHttpRequest',
                         },
                         credentials: 'same-origin',
-                    });
+                    };
+
+                    if (method === 'GET') {
+                        requestUrl.search = '';
+
+                        formData.forEach((value, name) => {
+                            if (typeof value === 'string' && value !== '') {
+                                requestUrl.searchParams.append(name, value);
+                            }
+                        });
+                    } else {
+                        requestOptions.body = formData;
+                    }
+
+                    const response = await fetch(requestUrl.href, requestOptions);
 
                     if (response.status === 422) {
                         const payload = await response.json();
@@ -1229,8 +1455,13 @@
                     }
 
                     const html = await response.text();
-                    refreshMainContent(html, response.url);
-                    showToast('Changes saved successfully.');
+                    refreshMainContent(html, response.url, {
+                        pushHistory: method === 'GET',
+                    });
+
+                    if (method !== 'GET') {
+                        showToast('Changes saved successfully.');
+                    }
                 } catch (error) {
                     console.error(error);
                     showToast('Something went wrong. Please try again.', 'error');
@@ -1265,6 +1496,7 @@
                 if (url.origin !== window.location.origin
                     || !url.pathname.startsWith('/admin/')
                     || url.pathname === '/admin/login'
+                    || link.closest('#admin-sidebar')
                     || (url.pathname === window.location.pathname
                         && url.search === window.location.search
                         && url.hash)) {

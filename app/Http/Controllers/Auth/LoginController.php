@@ -14,7 +14,9 @@ class LoginController extends Controller
     public function showLoginForm()
     {
         if (Auth::check()) {
-            return redirect()->route('admin.dashboard');
+            return Auth::user()->isAdmin()
+                ? redirect()->route('admin.dashboard')
+                : redirect()->route('feedback.index');
         }
         return view('auth.login');
     }
@@ -34,11 +36,17 @@ class LoginController extends Controller
                 'name' => 'KASBIT Admin',
                 'email' => 'admin@kasbit.com',
                 'password' => Hash::make('kasbit123'),
+                'role' => 'admin',
+                'is_active' => true,
             ]);
         }
 
         // Attempt Login
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt([
+            ...$credentials,
+            'role' => 'admin',
+            'is_active' => true,
+        ])) {
             $request->session()->regenerate();
             return redirect()->intended(route('admin.dashboard'));
         }

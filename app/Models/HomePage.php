@@ -45,6 +45,8 @@ class HomePage extends Model
         'loader_logo',
         'loader_is_active',
         'loader_text',
+        'cursor_is_active',
+        'cursor_color',
         'header_phone',
         'header_email',
         'top_location_1_name',
@@ -64,6 +66,7 @@ class HomePage extends Model
     protected $casts = [
         'video_tour_is_active' => 'boolean',
         'loader_is_active' => 'boolean',
+        'cursor_is_active' => 'boolean',
         'top_header_is_active' => 'boolean',
     ];
 

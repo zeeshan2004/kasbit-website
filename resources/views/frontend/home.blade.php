@@ -485,7 +485,7 @@
     $videoTourUrl = trim($home->video_tour_url ?? '');
 
     if ($videoTourUrl && preg_match('~(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/))([A-Za-z0-9_-]{11})~', $videoTourUrl, $videoMatch)) {
-        $videoTourEmbedUrl = 'https://www.youtube.com/embed/' . $videoMatch[1] . '?rel=0&enablejsapi=1&playsinline=1&mute=1&controls=0&disablekb=1&fs=0&iv_load_policy=3';
+        $videoTourEmbedUrl = 'https://www.youtube.com/embed/' . $videoMatch[1] . '?rel=0&enablejsapi=1&playsinline=1&autoplay=1&mute=1&controls=1&fs=1&iv_load_policy=3';
     }
 @endphp
 
@@ -499,7 +499,7 @@
 
             <div class="video-tour-frame">
                 @if($home->video_tour_file ?? false)
-                    <video id="kasbitVideoTour" muted playsinline preload="none" @if($home->video_tour_poster ?? false) poster="{{ asset($home->video_tour_poster) }}" @endif>
+                    <video id="kasbitVideoTour" muted playsinline controls preload="metadata" @if($home->video_tour_poster ?? false) poster="{{ asset($home->video_tour_poster) }}" @endif>
                         <source src="{{ asset($home->video_tour_file) }}">
                         Your browser does not support the video player.
                     </video>
@@ -509,6 +509,7 @@
                         src="{{ $videoTourEmbedUrl }}"
                         title="{{ $home->video_tour_title ?: 'VIDEO TOUR OF KASBIT' }}"
                         loading="lazy"
+                        referrerpolicy="strict-origin-when-cross-origin"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowfullscreen></iframe>
                 @endif
@@ -525,6 +526,25 @@
 
                 if (!section || (!video && !youtube)) return;
 
+                let youtubeShouldPlay = false;
+
+                const syncYoutubePlayback = function () {
+                    if (!youtube?.contentWindow) return;
+
+                    youtube.contentWindow.postMessage(JSON.stringify({
+                        event: 'command',
+                        func: youtubeShouldPlay ? 'playVideo' : 'pauseVideo',
+                        args: []
+                    }), 'https://www.youtube.com');
+                };
+
+                if (youtube) {
+                    youtube.addEventListener('load', function () {
+                        window.setTimeout(syncYoutubePlayback, 250);
+                        window.setTimeout(syncYoutubePlayback, 900);
+                    });
+                }
+
                 const observer = new IntersectionObserver(function (entries) {
                     entries.forEach(function (entry) {
                         const isVisible = entry.isIntersecting && entry.intersectionRatio >= 0.55;
@@ -537,12 +557,9 @@
                             }
                         }
 
-                        if (youtube?.contentWindow) {
-                            youtube.contentWindow.postMessage(JSON.stringify({
-                                event: 'command',
-                                func: isVisible ? 'playVideo' : 'pauseVideo',
-                                args: []
-                            }), '*');
+                        if (youtube) {
+                            youtubeShouldPlay = isVisible;
+                            syncYoutubePlayback();
                         }
                     });
                 }, {

@@ -4,30 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KASBIT Admin - Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}?v={{ filemtime(public_path('vendor/fontawesome/css/all.min.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/admin-login.css') }}?v={{ filemtime(public_path('css/admin-login.css')) }}">
 </head>
-<body class="bg-slate-950 flex items-center justify-center h-screen">
-    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-6">KASBIT Admin Login</h2>
+<body>
+    <main class="admin-login-card">
+        <div class="admin-login-brand">
+            <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+            <h1>KASBIT Admin</h1>
+        </div>
         
         @if ($errors->any())
-            <div class="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded-lg">
+            <div class="admin-login-error" role="alert">
                 {{ $errors->first() }}
             </div>
         @endif
 
         <form method="POST" action="{{ route('admin.login.post') }}">
             @csrf
-            <div class="mb-4">
-                <label class="block text-sm font-semibold mb-2 text-gray-700">Email Address</label>
-                <input type="email" name="email" value="{{ old('email') }}" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500" required autofocus>
+            <div class="admin-login-field">
+                <label for="admin-email">Email Address</label>
+                <input id="admin-email" type="email" name="email" value="{{ old('email') }}" required autofocus>
             </div>
-            <div class="mb-6">
-                <label class="block text-sm font-semibold mb-2 text-gray-700">Password</label>
-                <input type="password" name="password" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500" required>
+            <div class="admin-login-field">
+                <label for="admin-password">Password</label>
+                <input id="admin-password" type="password" name="password" required>
             </div>
-            <button type="submit" class="w-full bg-blue-700 text-white py-2 rounded-lg font-bold hover:bg-blue-800 transition">Sign In</button>
+            <button type="submit" class="admin-login-submit">Sign In</button>
         </form>
-    </div>
+    </main>
 </body>
 </html>

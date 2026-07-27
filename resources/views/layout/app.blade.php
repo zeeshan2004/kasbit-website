@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config('app.name') }}</title>
 
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     @php
         $firstHeroSlide = ($heroSlides ?? collect())->first();
         $firstHeroPreloadSrcset = $firstHeroSlide
@@ -22,14 +20,11 @@
               type="{{ $firstHeroSlide->image_avif_url ? 'image/avif' : 'image/webp' }}"
               fetchpriority="high">
     @endif
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="preload"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-          as="style"
-          onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet"></noscript>
+    <link href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}?v={{ filemtime(public_path('vendor/bootstrap/bootstrap.min.css')) }}" rel="stylesheet">
+    <link href="{{ asset('vendor/fontawesome/css/all.min.css') }}?v={{ filemtime(public_path('vendor/fontawesome/css/all.min.css')) }}" rel="stylesheet">
 
     <link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ filemtime(public_path('css/home.css')) }}">
+    @stack('styles')
 </head>
 <body>
     @php
@@ -37,7 +32,13 @@
         $loaderText = (($home ?? null)?->exists ?? false)
             ? trim((string) $home->loader_text)
             : 'Loading...';
+        $cursorIsActive = (bool) (($home ?? null)?->cursor_is_active ?? true);
+        $cursorColor = strtolower((string) (($home ?? null)?->cursor_color ?? '#ffcc00'));
+        $cursorColor = preg_match('/^#[0-9a-f]{6}$/', $cursorColor) ? $cursorColor : '#ffcc00';
     @endphp
+    @if($cursorIsActive)
+        <div class="site-cursor" style="--site-cursor-color: {{ $cursorColor }};" aria-hidden="true"></div>
+    @endif
     @if($loaderIsActive)
         <div id="pageLoader" class="page-loader page-loader--hidden" role="status" aria-live="polite" aria-label="Loading page">
             <div class="page-loader__content">
@@ -82,9 +83,64 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}?v={{ filemtime(public_path('vendor/bootstrap/bootstrap.bundle.min.js')) }}"></script>
     @stack('scripts')
     <script>
+        (() => {
+            const cursor = document.querySelector('.site-cursor');
+            const canUseCursor = window.matchMedia(
+                '(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)'
+            );
+
+            if (!cursor || !canUseCursor.matches) {
+                cursor?.remove();
+                return;
+            }
+
+            let currentX = -50;
+            let currentY = -50;
+            let targetX = -50;
+            let targetY = -50;
+            let animationFrame = null;
+            let clickTimer = null;
+
+            const render = () => {
+                currentX += (targetX - currentX) * 0.28;
+                currentY += (targetY - currentY) * 0.28;
+                cursor.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+
+                if (Math.abs(targetX - currentX) > 0.1 || Math.abs(targetY - currentY) > 0.1) {
+                    animationFrame = window.requestAnimationFrame(render);
+                } else {
+                    animationFrame = null;
+                }
+            };
+
+            const queueRender = () => {
+                if (animationFrame === null) {
+                    animationFrame = window.requestAnimationFrame(render);
+                }
+            };
+
+            document.addEventListener('pointermove', (event) => {
+                targetX = event.clientX;
+                targetY = event.clientY;
+                cursor.classList.add('is-visible');
+                queueRender();
+            }, { passive: true });
+
+            document.addEventListener('pointerdown', () => {
+                cursor.classList.remove('is-clicking');
+                void cursor.offsetWidth;
+                cursor.classList.add('is-clicking');
+                window.clearTimeout(clickTimer);
+                clickTimer = window.setTimeout(() => cursor.classList.remove('is-clicking'), 500);
+            }, { passive: true });
+
+            window.addEventListener('blur', () => cursor.classList.remove('is-visible'));
+            document.documentElement.addEventListener('mouseleave', () => cursor.classList.remove('is-visible'));
+        })();
+
         (() => {
             const lightbox = document.getElementById('globalImageLightbox');
             const image = document.getElementById('globalImageLightboxImage');
@@ -241,5 +297,22 @@
             window.setTimeout(hideLoader, 1500);
         })();
     </script>
+    <!-- Start of Tawk.to Script -->
+    <script type="text/javascript">
+        var Tawk_API = Tawk_API || {};
+        var Tawk_LoadStart = new Date();
+
+        (function () {
+            var s1 = document.createElement('script');
+            var s0 = document.getElementsByTagName('script')[0];
+
+            s1.async = true;
+            s1.src = 'https://embed.tawk.to/6a67d654d4082b1d4da86b9f/1juipqeho';
+            s1.charset = 'UTF-8';
+            s1.setAttribute('crossorigin', '*');
+            s0.parentNode.insertBefore(s1, s0);
+        })();
+    </script>
+    <!-- End of Tawk.to Script -->
 </body>
 </html>

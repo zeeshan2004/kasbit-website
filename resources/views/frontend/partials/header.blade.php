@@ -6,6 +6,14 @@
         ])->filter(fn ($location) => filled($location['name']));
         $loginMenu = $headerMenus->firstWhere('name', 'Login');
         $loginChildren = $loginMenu?->children->where('is_active', true) ?? collect();
+        $studentUser = auth('student')->user();
+        $loginMenuIcon = match (trim((string) $loginMenu?->icon)) {
+            '', 'fa-solid fa-right-to-bracket', 'fa-solid fa-arrow-right-to-bracket' => 'fa-solid fa-user-lock',
+            default => $loginMenu->icon,
+        };
+        $loginToggleLabel = $studentUser
+            ? str($studentUser->name)->before(' ')->limit(14)
+            : ($loginMenu?->name ?: 'Login');
     @endphp
     <div class="top-header">
         <div class="top-header-inner">
@@ -25,22 +33,84 @@
                                 data-bs-toggle="dropdown"
                                 aria-expanded="false"
                                 aria-label="Open login links">
-                            <i class="{{ $loginMenu->icon ?: 'fa-solid fa-right-to-bracket' }}"></i>
-                            <span>{{ $loginMenu->name }}</span>
-                            <i class="fa-solid fa-chevron-down top-login-chevron"></i>
+                            <i class="{{ $studentUser ? 'fa-solid fa-user-check' : $loginMenuIcon }} top-login-icon" aria-hidden="true"></i>
+                            <span>{{ $loginToggleLabel }}</span>
+                            <i class="fa-solid fa-chevron-down top-login-chevron" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end top-login-menu">
-                            @forelse($loginChildren as $loginChild)
+                            @if($studentUser)
+                                <div class="top-login-account">
+                                    <strong>{{ $studentUser->name }}</strong>
+                                    <span>{{ $studentUser->email }}</span>
+                                </div>
+                            @else
+                                <a class="dropdown-item" href="{{ route('student.login') }}">
+                                    <span class="top-login-item-icon" aria-hidden="true">
+                                        <i class="fa-solid fa-user-graduate"></i>
+                                    </span>
+                                    <span class="top-login-item-label">Student Sign In</span>
+                                    <i class="fa-solid fa-arrow-right top-login-item-arrow" aria-hidden="true"></i>
+                                </a>
+                                <a class="dropdown-item" href="{{ route('student.register') }}">
+                                    <span class="top-login-item-icon" aria-hidden="true">
+                                        <i class="fa-solid fa-user-plus"></i>
+                                    </span>
+                                    <span class="top-login-item-label">Student Registration</span>
+                                    <i class="fa-solid fa-arrow-right top-login-item-arrow" aria-hidden="true"></i>
+                                </a>
+                            @endif
+
+                            <a class="dropdown-item" href="{{ route('feedback.index') }}">
+                                <span class="top-login-item-icon" aria-hidden="true">
+                                    <i class="fa-solid fa-message"></i>
+                                </span>
+                                <span class="top-login-item-label">Submit Feedback</span>
+                                <i class="fa-solid fa-arrow-right top-login-item-arrow" aria-hidden="true"></i>
+                            </a>
+
+                            <div class="top-login-divider" aria-hidden="true"></div>
+
+                            @foreach($loginChildren as $loginChild)
+                                @if($loginChild->name === 'Student Login')
+                                    @continue
+                                @endif
+                                @php
+                                    $loginChildIcon = match ($loginChild->name) {
+                                        'Faculty Login' => 'fa-solid fa-chalkboard-user',
+                                        'Results' => 'fa-solid fa-chart-line',
+                                        'Convocation Registration' => 'fa-solid fa-file-signature',
+                                        default => $loginChild->icon ?: 'fa-solid fa-arrow-right',
+                                    };
+                                @endphp
                                 <a class="dropdown-item" href="{{ $loginChild->link ?: '#' }}">
-                                    <i class="{{ $loginChild->icon ?: 'fa-solid fa-circle' }}"></i>
-                                    <span>{{ $loginChild->name }}</span>
+                                    <span class="top-login-item-icon" aria-hidden="true">
+                                        <i class="{{ $loginChildIcon }}"></i>
+                                    </span>
+                                    <span class="top-login-item-label">{{ $loginChild->name }}</span>
+                                    <i class="fa-solid fa-arrow-right top-login-item-arrow" aria-hidden="true"></i>
                                 </a>
-                            @empty
-                                <a class="dropdown-item" href="{{ $loginMenu->link ?: '#' }}">
-                                    <i class="fa-solid fa-right-to-bracket"></i>
-                                    <span>Login</span>
+                            @endforeach
+
+                            @if($studentUser)
+                                <div class="top-login-divider" aria-hidden="true"></div>
+                                <form method="POST" action="{{ route('student.logout') }}">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item top-login-logout">
+                                        <span class="top-login-item-icon" aria-hidden="true">
+                                            <i class="fa-solid fa-right-from-bracket"></i>
+                                        </span>
+                                        <span class="top-login-item-label">Sign Out</span>
+                                    </button>
+                                </form>
+                            @elseif($loginChildren->isEmpty())
+                                <a class="dropdown-item" href="{{ $loginMenu->link ?: route('student.login') }}">
+                                    <span class="top-login-item-icon" aria-hidden="true">
+                                        <i class="fa-solid fa-user-lock"></i>
+                                    </span>
+                                    <span class="top-login-item-label">Login</span>
+                                    <i class="fa-solid fa-arrow-right top-login-item-arrow" aria-hidden="true"></i>
                                 </a>
-                            @endforelse
+                            @endif
                         </div>
                     </div>
                 @endif

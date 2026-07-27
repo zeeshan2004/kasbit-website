@@ -3,8 +3,12 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\StudentAuthController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DepartmentController as FeedbackDepartmentController;
 use App\Http\Controllers\Admin\HeaderMenuPageController;
 use App\Http\Controllers\Admin\HeaderMenuPageSlideController;
 use App\Http\Controllers\Admin\ProgramSchemaController;
@@ -18,6 +22,9 @@ use App\Http\Controllers\Admin\PageGalleryController;
 use App\Http\Controllers\Admin\EventAlbumController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\ElibraryResourceController;
+use App\Http\Controllers\Admin\QueryController as AdminQueryController;
+use App\Http\Controllers\Admin\RegistrationProgramController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 
 
 
@@ -67,12 +74,53 @@ Route::get('/admin/login', [LoginController::class, 'showLoginForm'])->name('log
 Route::post('/admin/login', [LoginController::class, 'login'])->name('admin.login.post');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+Route::middleware('guest:student')->group(function () {
+    Route::get('/student/login', [StudentAuthController::class, 'showLogin'])
+        ->name('student.login');
+    Route::post('/student/login', [StudentAuthController::class, 'login'])
+        ->name('student.login.store');
+    Route::get('/student/register', [StudentAuthController::class, 'showRegistration'])
+        ->name('student.register');
+    Route::post('/student/register', [StudentAuthController::class, 'register'])
+        ->name('student.register.store');
+});
+
+Route::post('/student/logout', [StudentAuthController::class, 'logout'])
+    ->middleware('auth:student')
+    ->name('student.logout');
+
+Route::middleware('student')->group(function () {
+    Route::get('/feedback', [FeedbackController::class, 'index'])->name('feedback.index');
+    Route::post('/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
+});
+
 // Protected Admin Layout Sections
-Route::prefix('admin')->middleware(['auth'])->group(function () {
+Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard');
-    })->name('admin.dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+
+    Route::resource('users', AdminUserController::class)
+        ->only(['index', 'edit', 'update', 'destroy'])
+        ->parameters(['users' => 'managedUser'])
+        ->names('admin.users');
+
+    Route::patch('/feedback-departments/{department}/toggle', [FeedbackDepartmentController::class, 'toggle'])
+        ->name('admin.departments.toggle');
+    Route::resource('feedback-departments', FeedbackDepartmentController::class)
+        ->except(['create', 'show'])
+        ->parameters(['feedback-departments' => 'department'])
+        ->names('admin.departments');
+
+    Route::resource('queries', AdminQueryController::class)
+        ->only(['index', 'show', 'update', 'destroy'])
+        ->names('admin.queries');
+
+    Route::patch('/registration-programs/{program}/toggle', [RegistrationProgramController::class, 'toggle'])
+        ->name('admin.programs.toggle');
+    Route::resource('registration-programs', RegistrationProgramController::class)
+        ->only(['index', 'store', 'edit', 'update', 'destroy'])
+        ->parameters(['registration-programs' => 'program'])
+        ->names('admin.programs');
 
     Route::get('/profile', [AdminProfileController::class, 'edit'])
         ->name('admin.profile.edit');

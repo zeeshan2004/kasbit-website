@@ -15,6 +15,8 @@ class DatabaseSeeder extends Seeder
                 'name'     => 'KASBIT Admin',
                 'email'    => 'admin@admin.com',
                 'password' => Hash::make('admin123'),
+                'role'     => 'admin',
+                'is_active' => true,
             ]
         );
     }

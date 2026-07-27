@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class FooterSetting extends Model
 {
+    public const FRONTEND_CACHE_KEY = 'frontend:footer-setting:v1';
+
     protected $fillable = [
         'logo',
         'address_1',
@@ -29,4 +32,12 @@ class FooterSetting extends Model
         'gallery_images' => 'array',
         'is_active' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        $clearFrontendCache = fn () => Cache::store('file')->forget(self::FRONTEND_CACHE_KEY);
+
+        static::saved($clearFrontendCache);
+        static::deleted($clearFrontendCache);
+    }
 }
