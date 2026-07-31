@@ -12,6 +12,15 @@ class PageController extends Controller
     public function show(HeaderMenuPage $page)
     {
         abort_unless($page->menu?->is_active, 404);
+
+        if ($targetMenu = $page->menu->adminContentTarget()) {
+            $targetPage = $targetMenu->page;
+
+            abort_unless($targetMenu->is_active && $targetPage, 404);
+
+            return redirect()->route('pages.show', $targetPage);
+        }
+
         $page->load([
             'slides' => fn ($query) => $query->where('is_active', true),
             'programSchemaTables' => fn ($query) => $query

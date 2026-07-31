@@ -6,6 +6,7 @@
     <title>{{ $title ?? 'KASBIT Admin Panel' }}</title>
     <link rel="stylesheet" href="{{ asset('css/admin-fallback.css') }}?v={{ filemtime(public_path('css/admin-fallback.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/admin-feedback.css') }}?v={{ filemtime(public_path('css/admin-feedback.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/chatbot-admin.css') }}?v={{ filemtime(public_path('css/chatbot-admin.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/admin-tailwind.css') }}?v={{ filemtime(public_path('css/admin-tailwind.css')) }}">
     <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}?v={{ filemtime(public_path('vendor/fontawesome/css/all.min.css')) }}">
     <style>
@@ -112,6 +113,13 @@
             flex: 0 0 2.25rem;
             padding-left: .5rem;
             padding-right: .5rem;
+        }
+
+        #admin-website-sections .dropdown-container > div > .flex > button[data-admin-dropdown-only] {
+            width: 100%;
+            flex: 1 1 100%;
+            padding-right: .75rem;
+            padding-left: .75rem;
         }
 
         .chevron { transition: transform 0.3s ease; }
@@ -470,6 +478,17 @@
                     @endif
                 </a>
 
+                <a href="{{ route('admin.chatbot.dashboard') }}"
+                   data-admin-primary-link
+                   data-admin-match="prefix"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg {{ request()->routeIs('admin.chatbot.*') ? 'bg-kasbitBlue text-white font-medium shadow-md' : 'hover:bg-gray-800 hover:text-white transition' }}">
+                    <i class="fa-solid fa-robot w-5 text-center text-base"></i>
+                    <span>AI Chatbot</span>
+                    @if(($chatbotPendingCount ?? 0) > 0)
+                        <span class="admin-nav-badge">{{ $chatbotPendingCount > 99 ? '99+' : $chatbotPendingCount }}</span>
+                    @endif
+                </a>
+
                 <div class="pt-4 pb-1">
                     <span class="text-xs uppercase text-gray-500 font-bold px-4 tracking-wider">Website Sections</span>
                 </div>
@@ -498,21 +517,37 @@
                                     @foreach($section->children as $child)
                                         @php
                                             $childSectionId = 'website-section-' . $child->id;
+                                            $childIsDropdownOnly = $child->isAdminDropdownOnly();
                                         @endphp
                                         <div>
                                             <div class="flex items-center rounded-md hover:bg-gray-800 transition">
-                                                <a href="{{ route('header-menu.page.edit', $child) }}"
-                                                   class="min-w-0 flex-1 flex items-center space-x-2 px-3 py-2 text-sm hover:text-white">
-                                                    <i class="{{ $child->icon ?: 'fa-solid fa-circle' }} w-4 text-center text-[10px]"></i>
-                                                    <span>{{ $child->name }}</span>
-                                                </a>
-                                                @if($child->children->count())
+                                                @if($childIsDropdownOnly)
                                                     <button type="button"
+                                                            data-admin-dropdown-only="{{ $child->id }}"
                                                             onclick="toggleNestedDD('{{ $childSectionId }}', '{{ $sectionId }}')"
-                                                            class="admin-nav-chevron admin-nav-chevron--nested self-stretch px-3 text-gray-500 hover:text-white"
-                                                            aria-label="Open {{ $child->name }} programs">
-                                                        <i id="chevron-{{ $childSectionId }}" class="fa-solid fa-chevron-down text-[9px] chevron"></i>
+                                                            class="w-full min-w-0 flex items-center justify-between gap-2 px-3 py-2 text-sm hover:text-white focus:outline-none"
+                                                            aria-controls="dd-{{ $childSectionId }}"
+                                                            aria-expanded="false">
+                                                        <span class="min-w-0 flex items-center space-x-2">
+                                                            <i class="{{ $child->icon ?: 'fa-solid fa-circle' }} w-4 text-center text-[10px]"></i>
+                                                            <span>{{ $child->name }}</span>
+                                                        </span>
+                                                        <i id="chevron-{{ $childSectionId }}" class="fa-solid fa-chevron-down text-[9px] chevron text-gray-500"></i>
                                                     </button>
+                                                @else
+                                                    <a href="{{ route('header-menu.page.edit', $child) }}"
+                                                       class="min-w-0 flex-1 flex items-center space-x-2 px-3 py-2 text-sm hover:text-white">
+                                                        <i class="{{ $child->icon ?: 'fa-solid fa-circle' }} w-4 text-center text-[10px]"></i>
+                                                        <span>{{ $child->name }}</span>
+                                                    </a>
+                                                    @if($child->children->count())
+                                                        <button type="button"
+                                                                onclick="toggleNestedDD('{{ $childSectionId }}', '{{ $sectionId }}')"
+                                                                class="admin-nav-chevron admin-nav-chevron--nested self-stretch px-3 text-gray-500 hover:text-white"
+                                                                aria-label="Open {{ $child->name }} programs">
+                                                            <i id="chevron-{{ $childSectionId }}" class="fa-solid fa-chevron-down text-[9px] chevron"></i>
+                                                        </button>
+                                                    @endif
                                                 @endif
                                             </div>
                                             @if($child->children->count())
@@ -1053,6 +1088,7 @@
             const childMenu = document.getElementById('dd-' + childId);
             const childIcon = document.getElementById('chevron-' + childId);
             const parentMenu = document.getElementById('dd-' + parentId);
+            const childTrigger = document.querySelector('[aria-controls="dd-' + childId + '"]');
             const isChildOpen = childMenu.classList.contains('open');
 
             // Close other nested submenus in the SAME parent section to keep it clean
@@ -1061,7 +1097,9 @@
                     el.classList.remove('open');
                     const cId = el.id.replace('dd-', '');
                     const cIcon = document.getElementById('chevron-' + cId);
+                    const cTrigger = document.querySelector('[aria-controls="dd-' + cId + '"]');
                     if(cIcon) cIcon.classList.remove('rotate');
+                    if(cTrigger) cTrigger.setAttribute('aria-expanded', 'false');
                 }
             });
 
@@ -1069,11 +1107,13 @@
             if (!isChildOpen) {
                 childMenu.classList.add('open');
                 childIcon.classList.add('rotate');
+                if(childTrigger) childTrigger.setAttribute('aria-expanded', 'true');
                 // Dynamically update parent height to fit the new inner layout seamlessly
                 parentMenu.style.maxHeight = (parentMenu.scrollHeight + childMenu.scrollHeight) + "px";
             } else {
                 childMenu.classList.remove('open');
                 childIcon.classList.remove('rotate');
+                if(childTrigger) childTrigger.setAttribute('aria-expanded', 'false');
                 parentMenu.style.maxHeight = '';
             }
         }

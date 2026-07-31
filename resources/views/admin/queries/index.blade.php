@@ -106,7 +106,7 @@
                 <span class="admin-status admin-status--student">{{ $queries->total() }} Results</span>
             </div>
             <div class="admin-table-wrap">
-                <table class="admin-data-table">
+                <table class="admin-data-table admin-data-table--queries admin-data-table--actions">
                     <thead>
                         <tr>
                             <th>Query ID</th>

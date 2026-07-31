@@ -84,6 +84,7 @@ body.admin-confirm-open {
 
 .management-page {
     width: min(100%, 1500px);
+    min-width: 0;
     margin: 0 auto;
     color: #1b2d42;
 }
@@ -191,6 +192,7 @@ a.management-stat:hover {
 }
 
 .management-panel {
+    min-width: 0;
     margin-bottom: 1.25rem;
     padding: 1.25rem;
     border: 1px solid #dce5ee;
@@ -201,8 +203,10 @@ a.management-stat:hover {
 
 .management-panel-header {
     display: flex;
+    min-width: 0;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 1rem;
     margin-bottom: 1rem;
     padding-bottom: .85rem;
@@ -220,6 +224,10 @@ a.management-stat:hover {
     grid-template-columns: minmax(270px, .72fr) minmax(0, 1.8fr);
     gap: 1.25rem;
     align-items: start;
+}
+
+.management-split > .management-panel {
+    min-width: 0;
 }
 
 .admin-form-grid {
@@ -359,9 +367,12 @@ a.management-stat:hover {
 
 .admin-table-wrap {
     width: 100%;
+    max-width: 100%;
     overflow-x: auto;
     border: 1px solid #e1e8ef;
     border-radius: .4rem;
+    scrollbar-width: thin;
+    scrollbar-color: #9aabba #edf2f6;
 }
 
 .admin-data-table {
@@ -371,6 +382,45 @@ a.management-stat:hover {
     background: #fff;
     font-size: .76rem;
 }
+
+.admin-data-table--departments,
+.admin-data-table--programs,
+.admin-data-table--queries {
+    table-layout: fixed;
+}
+
+.admin-data-table--departments {
+    min-width: 720px;
+}
+
+.admin-data-table--departments th:nth-child(1) { width: 4rem; }
+.admin-data-table--departments th:nth-child(3) { width: 5.5rem; }
+.admin-data-table--departments th:nth-child(4) { width: 6.5rem; }
+.admin-data-table--departments th:nth-child(5) { width: 4.75rem; }
+.admin-data-table--departments th:nth-child(6) { width: 7.75rem; }
+.admin-data-table--departments th:nth-child(7) { width: 8.5rem; }
+
+.admin-data-table--programs {
+    min-width: 860px;
+}
+
+.admin-data-table--programs th:nth-child(1) { width: 17rem; }
+.admin-data-table--programs th:nth-child(2) { width: 12rem; }
+.admin-data-table--programs th:nth-child(3) { width: 5.5rem; }
+.admin-data-table--programs th:nth-child(4) { width: 5.5rem; }
+.admin-data-table--programs th:nth-child(5) { width: 4.25rem; }
+.admin-data-table--programs th:nth-child(6) { width: 8.5rem; }
+
+.admin-data-table--queries {
+    min-width: 1180px;
+}
+
+.admin-data-table--queries th:nth-child(1) { width: 12rem; }
+.admin-data-table--queries th:nth-child(2) { width: 15rem; }
+.admin-data-table--queries th:nth-child(3) { width: 10rem; }
+.admin-data-table--queries th:nth-child(5) { width: 7rem; }
+.admin-data-table--queries th:nth-child(6) { width: 8.5rem; }
+.admin-data-table--queries th:nth-child(7) { width: 9.5rem; }
 
 .admin-data-table th {
     padding: .7rem .75rem;
@@ -389,6 +439,7 @@ a.management-stat:hover {
     border-bottom: 1px solid #e8edf2;
     color: #2d425a;
     vertical-align: middle;
+    overflow-wrap: anywhere;
 }
 
 .admin-data-table tbody tr:last-child td {
@@ -410,6 +461,7 @@ a.management-stat:hover {
     margin-top: .18rem;
     color: #7b8b9c;
     font-size: .66rem;
+    overflow-wrap: anywhere;
 }
 
 .admin-table-message {
@@ -418,6 +470,39 @@ a.management-stat:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.admin-data-table--actions .admin-row-actions {
+    flex-wrap: nowrap;
+    gap: .35rem;
+}
+
+.admin-data-table--actions .admin-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.admin-data-table--actions .admin-button--icon {
+    width: 2rem;
+    min-height: 2rem;
+}
+
+.admin-data-table--actions th:last-child,
+.admin-data-table--actions td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: #fff;
+    box-shadow: -8px 0 12px -12px rgba(15, 45, 75, .7);
+}
+
+.admin-data-table--actions th:last-child {
+    z-index: 2;
+    background: #f4f7fa;
+}
+
+.admin-data-table--actions tbody tr:hover td:last-child {
+    background: #f8fafc;
 }
 
 .admin-status {
@@ -522,6 +607,10 @@ a.management-stat:hover {
     align-items: start;
 }
 
+.query-detail-grid > .management-panel {
+    min-width: 0;
+}
+
 .query-meta-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -530,6 +619,7 @@ a.management-stat:hover {
 }
 
 .query-meta {
+    min-width: 0;
     padding-bottom: .75rem;
     border-bottom: 1px solid #e5ebf1;
 }
@@ -550,9 +640,12 @@ a.management-stat:hover {
 .query-meta strong {
     color: #243951;
     font-size: .82rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .query-message-full {
+    max-width: 100%;
     margin: 0;
     padding: 1rem;
     border-left: 3px solid #07559d;
@@ -560,6 +653,8 @@ a.management-stat:hover {
     color: #30465e;
     font-size: .82rem;
     line-height: 1.7;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     white-space: pre-wrap;
 }
 

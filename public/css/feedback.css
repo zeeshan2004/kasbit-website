@@ -1,13 +1,20 @@
 .student-access-page,
 .feedback-page {
+    max-width: 100%;
     min-height: calc(100vh - 110px);
     background: #f4f7fa;
     color: #172b42;
 }
 
+.student-access-page *,
+.feedback-page * {
+    box-sizing: border-box;
+}
+
 .student-access-inner,
 .feedback-inner {
     width: min(1120px, calc(100% - 32px));
+    max-width: 100%;
     margin: 0 auto;
 }
 
@@ -50,6 +57,8 @@
 
 .student-auth-card {
     width: min(560px, 100%);
+    max-width: 100%;
+    min-width: 0;
     margin: 0 auto;
     padding: 30px;
     border: 1px solid #dce5ee;
@@ -90,6 +99,7 @@
 .feedback-field textarea {
     display: block;
     width: 100%;
+    max-width: 100%;
     min-height: 46px;
     padding: 10px 12px;
     border: 1px solid #cbd7e3;
@@ -189,8 +199,10 @@
 }
 
 .student-auth-switch {
+    min-width: 0;
     color: #5a6b7e;
     font-size: 13px;
+    overflow-wrap: anywhere;
 }
 
 .student-auth-switch a {
@@ -200,12 +212,14 @@
 }
 
 .frontend-alert {
+    max-width: 100%;
     margin-bottom: 20px;
     padding: 13px 15px;
     border: 1px solid;
     border-radius: 6px;
     font-size: 13px;
     line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
 .frontend-alert--error {
@@ -234,10 +248,19 @@
     gap: 24px;
 }
 
+.feedback-page-header-inner > * {
+    min-width: 0;
+}
+
+.feedback-page-header-inner > :first-child {
+    flex: 1 1 auto;
+}
+
 .feedback-page-header h1 {
     margin: 5px 0 8px;
     font-size: clamp(30px, 5vw, 48px);
     font-weight: 780;
+    overflow-wrap: anywhere;
 }
 
 .feedback-page-header p {
@@ -256,7 +279,9 @@
 }
 
 .feedback-account {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    max-width: 100%;
+    min-width: 0;
     padding: 12px 14px;
     border: 1px solid rgba(255, 255, 255, .25);
     border-radius: 6px;
@@ -270,12 +295,14 @@
 
 .feedback-account strong {
     font-size: 13px;
+    overflow-wrap: anywhere;
 }
 
 .feedback-account span {
     margin-top: 3px;
     color: #d9e9f7;
     font-size: 11px;
+    overflow-wrap: anywhere;
 }
 
 .feedback-content {
@@ -284,12 +311,15 @@
 
 .feedback-layout {
     display: grid;
+    width: 100%;
+    max-width: 100%;
     grid-template-columns: minmax(0, 1.45fr) minmax(300px, .75fr);
     gap: 24px;
     align-items: start;
 }
 
 .feedback-panel {
+    min-width: 0;
     padding: 26px;
     border: 1px solid #dce5ee;
     border-radius: 8px;
@@ -301,6 +331,7 @@
     margin: 0 0 5px;
     color: #172b42;
     font-size: 20px;
+    overflow-wrap: anywhere;
 }
 
 .feedback-panel-copy {
@@ -311,6 +342,7 @@
 }
 
 .feedback-success {
+    max-width: 100%;
     margin-bottom: 22px;
     padding: 18px;
     border: 1px solid #8cccae;
@@ -333,19 +365,23 @@
     color: #07559d;
     font-size: 22px;
     font-weight: 800;
+    overflow-wrap: anywhere;
 }
 
 .feedback-success span {
     color: #527162;
     font-size: 12px;
+    overflow-wrap: anywhere;
 }
 
 .feedback-history-list {
     display: grid;
     gap: 10px;
+    min-width: 0;
 }
 
 .feedback-history-item {
+    min-width: 0;
     padding: 13px 0;
     border-bottom: 1px solid #e5ebf1;
 }
@@ -358,13 +394,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 10px;
 }
 
 .feedback-history-code {
+    min-width: 0;
     color: #07559d;
     font-size: 12px;
     font-weight: 800;
+    overflow-wrap: anywhere;
 }
 
 .feedback-history-item p {
@@ -372,14 +411,20 @@
     color: #364a61;
     font-size: 12px;
     line-height: 1.45;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .feedback-history-item small {
+    display: block;
     color: #8090a1;
     font-size: 10px;
+    overflow-wrap: anywhere;
 }
 
 .feedback-admin-response {
+    min-width: 0;
+    max-width: 100%;
     margin-top: 10px;
     padding: 9px 10px;
     border-left: 3px solid #07559d;
@@ -402,6 +447,7 @@
 }
 
 .query-status {
+    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     min-height: 24px;
@@ -449,6 +495,10 @@
         align-items: flex-start;
         flex-direction: column;
     }
+
+    .feedback-account {
+        width: 100%;
+    }
 }
 
 @media (max-width: 575.98px) {
@@ -464,6 +514,10 @@
     .student-auth-card,
     .feedback-panel {
         padding: 20px;
+    }
+
+    .feedback-page-header h1 {
+        font-size: 28px;
     }
 
     .feedback-field-grid {
@@ -484,11 +538,31 @@
         width: 100%;
     }
 
+    .feedback-field-meta {
+        flex-wrap: wrap;
+    }
+
     .feedback-page-header {
         padding: 30px 0 34px;
     }
 
     .feedback-content {
         padding: 20px 0 48px;
+    }
+}
+
+@media (max-width: 360px) {
+    .student-access-inner,
+    .feedback-inner {
+        width: calc(100% - 16px);
+    }
+
+    .student-auth-card,
+    .feedback-panel {
+        padding: 16px;
+    }
+
+    .feedback-page-header h1 {
+        font-size: 25px;
     }
 }

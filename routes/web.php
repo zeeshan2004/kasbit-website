@@ -25,6 +25,14 @@ use App\Http\Controllers\Admin\ElibraryResourceController;
 use App\Http\Controllers\Admin\QueryController as AdminQueryController;
 use App\Http\Controllers\Admin\RegistrationProgramController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\Admin\AiProviderController;
+use App\Http\Controllers\Admin\ChatbotDashboardController;
+use App\Http\Controllers\Admin\ChatbotHistoryController;
+use App\Http\Controllers\Admin\ChatbotKnowledgeController;
+use App\Http\Controllers\Admin\ChatbotSettingsController;
+use App\Http\Controllers\Admin\ChatbotSuggestionController;
+use App\Http\Controllers\Admin\ChatbotUnansweredController;
 
 
 
@@ -47,6 +55,13 @@ Route::get('/about', [HomeController::class, 'about'])->name('about');
 Route::get('/pages/{page:slug}', [PageController::class, 'show'])->name('pages.show');
 Route::get('/pages/{page:slug}/download-pdf', [PageController::class, 'downloadPdf'])->name('pages.pdf.download');
 Route::get('/event-gallery/{album:slug}', [PageController::class, 'eventAlbum'])->name('event-gallery.album');
+
+Route::prefix('chatbot')->name('chatbot.')->group(function () {
+    Route::get('/bootstrap', [ChatbotController::class, 'bootstrap'])->name('bootstrap');
+    Route::post('/profile', [ChatbotController::class, 'profile'])->name('profile');
+    Route::post('/message', [ChatbotController::class, 'message'])->name('message');
+    Route::delete('/conversation', [ChatbotController::class, 'clear'])->name('clear');
+});
 
 
 
@@ -98,6 +113,39 @@ Route::middleware('student')->group(function () {
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+
+    Route::prefix('ai-chatbot')->name('admin.chatbot.')->group(function () {
+        Route::get('/', [ChatbotDashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/providers', [AiProviderController::class, 'index'])->name('providers.index');
+        Route::post('/providers', [AiProviderController::class, 'store'])->name('providers.store');
+        Route::put('/providers/{provider}', [AiProviderController::class, 'update'])->name('providers.update');
+        Route::delete('/providers/{provider}', [AiProviderController::class, 'destroy'])->name('providers.destroy');
+        Route::post('/providers/{provider}/default', [AiProviderController::class, 'makeDefault'])->name('providers.default');
+        Route::post('/providers/{provider}/test', [AiProviderController::class, 'test'])->name('providers.test');
+
+        Route::get('/knowledge', [ChatbotKnowledgeController::class, 'index'])->name('knowledge.index');
+        Route::post('/knowledge', [ChatbotKnowledgeController::class, 'store'])->name('knowledge.store');
+        Route::put('/knowledge/{knowledge}', [ChatbotKnowledgeController::class, 'update'])->name('knowledge.update');
+        Route::delete('/knowledge/{knowledge}', [ChatbotKnowledgeController::class, 'destroy'])->name('knowledge.destroy');
+        Route::post('/categories', [ChatbotKnowledgeController::class, 'storeCategory'])->name('categories.store');
+        Route::delete('/categories/{category}', [ChatbotKnowledgeController::class, 'destroyCategory'])->name('categories.destroy');
+
+        Route::get('/unanswered', [ChatbotUnansweredController::class, 'index'])->name('unanswered.index');
+        Route::put('/unanswered/{unanswered}', [ChatbotUnansweredController::class, 'update'])->name('unanswered.update');
+        Route::post('/unanswered/{unanswered}/promote', [ChatbotUnansweredController::class, 'promote'])->name('unanswered.promote');
+
+        Route::get('/history', [ChatbotHistoryController::class, 'index'])->name('history.index');
+        Route::get('/history/{message}/correct', [ChatbotHistoryController::class, 'correct'])->name('history.correct');
+
+        Route::get('/suggestions', [ChatbotSuggestionController::class, 'index'])->name('suggestions.index');
+        Route::post('/suggestions', [ChatbotSuggestionController::class, 'store'])->name('suggestions.store');
+        Route::put('/suggestions/{suggestion}', [ChatbotSuggestionController::class, 'update'])->name('suggestions.update');
+        Route::delete('/suggestions/{suggestion}', [ChatbotSuggestionController::class, 'destroy'])->name('suggestions.destroy');
+
+        Route::get('/settings', [ChatbotSettingsController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings', [ChatbotSettingsController::class, 'update'])->name('settings.update');
+    });
 
     Route::resource('users', AdminUserController::class)
         ->only(['index', 'edit', 'update', 'destroy'])

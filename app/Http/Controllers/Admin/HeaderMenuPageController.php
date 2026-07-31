@@ -13,6 +13,10 @@ class HeaderMenuPageController extends Controller
 {
     public function edit(HeaderMenu $headerMenu)
     {
+        if ($target = $headerMenu->adminContentTarget()) {
+            return redirect()->route('header-menu.page.edit', $target);
+        }
+
         $page = $this->pageFor($headerMenu)->load([
             'slides',
             'programSchemaTables.rows',
@@ -28,6 +32,10 @@ class HeaderMenuPageController extends Controller
 
     public function update(Request $request, HeaderMenu $headerMenu)
     {
+        if ($target = $headerMenu->adminContentTarget()) {
+            return redirect()->route('header-menu.page.edit', $target);
+        }
+
         $data = $request->validate([
             'eyebrow' => ['nullable', 'string', 'max:100'],
             'title' => ['required', 'string', 'max:255'],

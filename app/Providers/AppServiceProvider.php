@@ -6,6 +6,8 @@ use App\Models\FooterSetting;
 use App\Models\HeaderMenu;
 use App\Models\HomePage;
 use App\Models\Query;
+use App\Models\ChatbotSetting;
+use App\Models\ChatbotUnansweredQuestion;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
@@ -52,6 +54,17 @@ class AppServiceProvider extends ServiceProvider
                 'feedbackPendingCount' => Schema::hasTable('queries')
                     ? Query::where('status', 'pending')->count()
                     : 0,
+                'chatbotPendingCount' => Schema::hasTable('chatbot_unanswered_questions')
+                    ? ChatbotUnansweredQuestion::where('status', 'pending')->count()
+                    : 0,
+            ]);
+        });
+
+        View::composer('frontend.partials.chatbot', function ($view) {
+            $view->with([
+                'chatbotSettings' => Schema::hasTable('chatbot_settings')
+                    ? ChatbotSetting::query()->first()
+                    : null,
             ]);
         });
 

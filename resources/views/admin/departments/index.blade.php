@@ -57,7 +57,7 @@
                     <span class="admin-status admin-status--student">{{ $departments->count() }} Total</span>
                 </div>
                 <div class="admin-table-wrap">
-                    <table class="admin-data-table">
+                    <table class="admin-data-table admin-data-table--departments admin-data-table--actions">
                         <thead>
                             <tr>
                                 <th>ID</th>

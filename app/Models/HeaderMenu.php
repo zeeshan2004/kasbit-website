@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Cache;
 class HeaderMenu extends Model
 {
     public const FRONTEND_CACHE_KEY = 'frontend:header-menus:v1';
+    public const ADMIN_DROPDOWN_ONLY_MENU = 'Associate Degree Program 2 Years';
+    public const ADMIN_DROPDOWN_CONTENT_TARGET = 'Associate Degree in Computer Science';
 
     protected $fillable = [
         'parent_id',
@@ -41,6 +43,37 @@ class HeaderMenu extends Model
     public function childrenRecursive()
     {
         return $this->children()->with('childrenRecursive');
+    }
+
+    public function isAdminDropdownOnly(): bool
+    {
+        if (strcasecmp($this->name, self::ADMIN_DROPDOWN_ONLY_MENU) !== 0) {
+            return false;
+        }
+
+        return $this->relationLoaded('children')
+            ? $this->children->isNotEmpty()
+            : $this->children()->exists();
+    }
+
+    public function adminContentTarget(): ?self
+    {
+        if (! $this->isAdminDropdownOnly()) {
+            return null;
+        }
+
+        if ($this->relationLoaded('children')) {
+            return $this->children->first(
+                fn (self $child) => strcasecmp(
+                    $child->name,
+                    self::ADMIN_DROPDOWN_CONTENT_TARGET
+                ) === 0
+            );
+        }
+
+        return $this->children()
+            ->whereRaw('LOWER(name) = ?', [strtolower(self::ADMIN_DROPDOWN_CONTENT_TARGET)])
+            ->first();
     }
 
     public function isDescendantOf(string $name): bool

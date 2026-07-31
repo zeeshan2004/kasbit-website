@@ -56,6 +56,16 @@ class User extends Authenticatable
         return $this->hasMany(Query::class);
     }
 
+    public function chatbotConversations()
+    {
+        return $this->hasMany(ChatbotConversation::class);
+    }
+
+    public function chatbotUnansweredQuestions()
+    {
+        return $this->hasMany(ChatbotUnansweredQuestion::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';

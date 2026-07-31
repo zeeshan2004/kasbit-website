@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name') }}</title>
 
     @php
@@ -24,6 +25,7 @@
     <link href="{{ asset('vendor/fontawesome/css/all.min.css') }}?v={{ filemtime(public_path('vendor/fontawesome/css/all.min.css')) }}" rel="stylesheet">
 
     <link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ filemtime(public_path('css/home.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/chatbot.css') }}?v={{ filemtime(public_path('css/chatbot.css')) }}">
     @stack('styles')
 </head>
 <body>
@@ -59,6 +61,8 @@
 
     @yield('content')
 
+    @include('frontend.partials.chatbot')
+
     <div class="gallery-lightbox" id="globalImageLightbox" aria-hidden="true">
         <button type="button" class="gallery-lightbox__backdrop" data-global-image-close aria-label="Close image preview"></button>
         <div class="gallery-lightbox__stage" role="dialog" aria-modal="true" aria-label="Image preview">
@@ -84,6 +88,7 @@
     </div>
 
     <script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}?v={{ filemtime(public_path('vendor/bootstrap/bootstrap.bundle.min.js')) }}"></script>
+    <script src="{{ asset('js/chatbot.js') }}?v={{ filemtime(public_path('js/chatbot.js')) }}" defer></script>
     @stack('scripts')
     <script>
         (() => {
@@ -297,22 +302,5 @@
             window.setTimeout(hideLoader, 1500);
         })();
     </script>
-    <!-- Start of Tawk.to Script -->
-    <script type="text/javascript">
-        var Tawk_API = Tawk_API || {};
-        var Tawk_LoadStart = new Date();
-
-        (function () {
-            var s1 = document.createElement('script');
-            var s0 = document.getElementsByTagName('script')[0];
-
-            s1.async = true;
-            s1.src = 'https://embed.tawk.to/6a67d654d4082b1d4da86b9f/1juipqeho';
-            s1.charset = 'UTF-8';
-            s1.setAttribute('crossorigin', '*');
-            s0.parentNode.insertBefore(s1, s0);
-        })();
-    </script>
-    <!-- End of Tawk.to Script -->
 </body>
 </html>
