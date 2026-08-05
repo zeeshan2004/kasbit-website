@@ -8,8 +8,13 @@
     const clear = root.querySelector('[data-chatbot-clear]');
     const chatView = root.querySelector('[data-chatbot-chat]');
     const profileView = root.querySelector('[data-chatbot-profile]');
+    const loginView = root.querySelector('[data-chatbot-login-view]');
     const profileForm = root.querySelector('[data-chatbot-profile-form]');
-    const profileError = root.querySelector('[data-chatbot-profile-error]');
+    const loginForm = root.querySelector('[data-chatbot-login-form]');
+    const loginError = root.querySelector('[data-chatbot-login-error]');
+    const showLoginBtn = root.querySelector('[data-chatbot-show-login]');
+    const guestContinueBtn = root.querySelector('[data-chatbot-guest-continue]');
+    const backToChoiceBtn = root.querySelector('[data-chatbot-back-to-choice]');
     const profileSummary = root.querySelector('[data-chatbot-profile-summary]');
     const profileEdit = root.querySelector('[data-chatbot-profile-edit]');
     const form = root.querySelector('[data-chatbot-form]');
@@ -246,9 +251,7 @@
     };
 
     const fillProfileForm = () => {
-        profileForm.elements.student_id.value = profile?.student_id || '';
-        profileForm.elements.full_name.value = profile?.full_name || '';
-        profileForm.elements.department_id.value = profile?.department_id || '';
+        // No longer needed - guest flow doesn't use profile form fields
     };
 
     const renderProfileSummary = () => {
@@ -271,14 +274,22 @@
 
     const showProfile = () => {
         chatView.hidden = true;
+        loginView.hidden = true;
         profileView.hidden = false;
         clear.hidden = true;
-        fillProfileForm();
-        window.requestAnimationFrame(() => profileForm.elements.student_id.focus());
+    };
+
+    const showLoginView = () => {
+        profileView.hidden = true;
+        chatView.hidden = true;
+        loginView.hidden = false;
+        clear.hidden = true;
+        window.requestAnimationFrame(() => loginForm.elements.email.focus());
     };
 
     const showChat = () => {
         profileView.hidden = true;
+        loginView.hidden = true;
         chatView.hidden = false;
         clear.hidden = false;
         renderProfileSummary();
@@ -368,28 +379,55 @@
         }
     };
 
-    profileForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        if (!profileForm.reportValidity()) return;
-
-        profileError.hidden = true;
-        const button = profileForm.querySelector('button[type="submit"]');
+    // Guest continue — skip profile form, go directly to chat as guest
+    guestContinueBtn.addEventListener('click', async () => {
+        const button = guestContinueBtn;
         button.disabled = true;
 
         try {
-            const data = await request(root.dataset.profileUrl, {
+            const data = await request(root.dataset.guestUrl, {
+                method: 'POST',
+                body: JSON.stringify({}),
+            });
+            profile = data.profile;
+            showChat();
+        } catch (error) {
+            // If guest save fails, just set local profile and continue
+            profile = { student_id: 'GUEST', full_name: 'Guest User', department_id: 0, department_name: 'General' };
+            showChat();
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    // Show login form
+    showLoginBtn.addEventListener('click', showLoginView);
+
+    // Back to choice screen
+    backToChoiceBtn.addEventListener('click', showProfile);
+
+    // Login form submit
+    loginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!loginForm.reportValidity()) return;
+
+        loginError.hidden = true;
+        const button = loginForm.querySelector('button[type="submit"]');
+        button.disabled = true;
+
+        try {
+            const data = await request(root.dataset.loginUrl, {
                 method: 'POST',
                 body: JSON.stringify({
-                    student_id: profileForm.elements.student_id.value.trim(),
-                    full_name: profileForm.elements.full_name.value.trim(),
-                    department_id: profileForm.elements.department_id.value,
+                    email: loginForm.elements.email.value.trim(),
+                    password: loginForm.elements.password.value,
                 }),
             });
             profile = data.profile;
             showChat();
         } catch (error) {
-            profileError.textContent = error.message || defaultError;
-            profileError.hidden = false;
+            loginError.textContent = error.message || defaultError;
+            loginError.hidden = false;
         } finally {
             button.disabled = false;
         }

@@ -8,6 +8,9 @@
     <a href="{{ route('admin.chatbot.knowledge.index') }}" class="{{ request()->routeIs('admin.chatbot.knowledge.*') || request()->routeIs('admin.chatbot.categories.*') ? 'is-active' : '' }}">
         <i class="fa-solid fa-book-open"></i> Knowledge
     </a>
+    <a href="{{ route('admin.chatbot.data.index') }}" class="{{ request()->routeIs('admin.chatbot.data.*') ? 'is-active' : '' }}">
+        <i class="fa-solid fa-database"></i> Data
+    </a>
     <a href="{{ route('admin.chatbot.unanswered.index') }}" class="{{ request()->routeIs('admin.chatbot.unanswered.*') ? 'is-active' : '' }}">
         <i class="fa-solid fa-circle-question"></i> Unanswered
     </a>

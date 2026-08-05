@@ -280,6 +280,77 @@
     font-size: .64rem;
 }
 
+.kasbit-chatbot__choice-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    width: 100%;
+    min-height: 46px;
+    margin-bottom: .55rem;
+    border: 0;
+    border-radius: 10px;
+    font-size: .78rem;
+    font-weight: 750;
+    cursor: pointer;
+    transition: opacity .15s;
+}
+
+.kasbit-chatbot__choice-btn:hover {
+    opacity: .88;
+}
+
+.kasbit-chatbot__choice-btn--login {
+    background: var(--chatbot-primary);
+    color: #fff;
+}
+
+.kasbit-chatbot__choice-btn--guest {
+    border: 2px solid var(--chatbot-primary);
+    background: #fff;
+    color: var(--chatbot-primary);
+}
+
+.kasbit-chatbot__back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    margin-top: .7rem;
+    padding: .3rem .1rem;
+    border: 0;
+    background: transparent;
+    color: var(--chatbot-primary);
+    font-size: .68rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.kasbit-chatbot__back-btn:hover {
+    text-decoration: underline;
+}
+
+.kasbit-chatbot__profile-divider {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin: .85rem 0;
+}
+
+.kasbit-chatbot__profile-divider::before,
+.kasbit-chatbot__profile-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #dce5ee;
+}
+
+.kasbit-chatbot__profile-divider span {
+    color: #8393a5;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
 .kasbit-chatbot__profile-summary {
     display: flex;
     align-items: center;
@@ -421,9 +492,11 @@
 
 .kasbit-chatbot__suggestions {
     display: flex;
+    flex-direction: column;
     gap: .4rem;
     padding: .65rem .75rem;
-    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 140px;
     border-top: 1px solid #e5ebf1;
     background: #fff;
     scrollbar-width: thin;
@@ -435,7 +508,7 @@
 
 .kasbit-chatbot__suggestions button {
     flex: 0 0 auto;
-    max-width: 240px;
+    width: 100%;
     padding: .48rem .68rem;
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--chatbot-primary) 35%, #dce5ee);
@@ -447,6 +520,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     cursor: pointer;
+    text-align: left;
 }
 
 .kasbit-chatbot__error {

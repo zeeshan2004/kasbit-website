@@ -4,6 +4,8 @@
          style="--chatbot-primary: {{ $chatbotSettings->primary_color }};"
          data-bootstrap-url="{{ route('chatbot.bootstrap') }}"
          data-profile-url="{{ route('chatbot.profile') }}"
+         data-login-url="{{ route('chatbot.login') }}"
+         data-guest-url="{{ route('chatbot.guest') }}"
          data-message-url="{{ route('chatbot.message') }}"
          data-clear-url="{{ route('chatbot.clear') }}"
          data-default-error="{{ $chatbotSettings->default_error_message }}"
@@ -40,29 +42,48 @@
                 </button>
             </header>
 
+            {{-- Step 1: Choice Screen (Login ya Guest) --}}
             <div class="kasbit-chatbot__profile" data-chatbot-profile hidden>
                 <div class="kasbit-chatbot__profile-card">
                     <span class="kasbit-chatbot__profile-icon"><i class="fa-solid fa-user-graduate"></i></span>
-                    <h3>Tell us about yourself</h3>
-                    <p>Enter your details once so answers and follow-up support can be routed correctly.</p>
-                    <form data-chatbot-profile-form>
-                        <label>Student ID
-                            <input type="text" name="student_id" maxlength="30" autocomplete="off" required>
-                        </label>
-                        <label>Full Name
-                            <input type="text" name="full_name" maxlength="120" autocomplete="name" required>
-                        </label>
-                        <label>Department
-                            <select name="department_id" required>
-                                <option value="">Select department</option>
-                            </select>
-                        </label>
-                        <div class="kasbit-chatbot__profile-error" data-chatbot-profile-error role="alert" hidden></div>
-                        <button type="submit"><i class="fa-solid fa-arrow-right"></i> Continue to Chat</button>
-                    </form>
-                    <small>Your Student ID is kept for administrator routing and is not sent to the external AI provider.</small>
+                    <h3>KASBIT Assistant</h3>
+                    <p>Choose how you'd like to use the chatbot.</p>
+                    <button type="button" class="kasbit-chatbot__choice-btn kasbit-chatbot__choice-btn--login" data-chatbot-show-login>
+                        <i class="fa-solid fa-sign-in-alt"></i> Login
+                    </button>
+                    <button type="button" class="kasbit-chatbot__choice-btn kasbit-chatbot__choice-btn--guest" data-chatbot-guest-continue>
+                        <i class="fa-solid fa-arrow-right"></i> Continue to Chat
+                    </button>
+                    <small>Students with an account can login for a personalized experience.</small>
                 </div>
             </div>
+
+            {{-- Step 2: Login Form (hidden by default) --}}
+            <div class="kasbit-chatbot__profile" data-chatbot-login-view hidden>
+                <div class="kasbit-chatbot__profile-card">
+                    <span class="kasbit-chatbot__profile-icon"><i class="fa-solid fa-sign-in-alt"></i></span>
+                    <h3>Student Login</h3>
+                    <p>Enter your KASBIT email and password.</p>
+                    <form data-chatbot-login-form>
+                        <label>Email
+                            <input type="email" name="email" maxlength="255" autocomplete="email" required>
+                        </label>
+                        <label>Password
+                            <input type="password" name="password" maxlength="255" autocomplete="current-password" required>
+                        </label>
+                        <div class="kasbit-chatbot__profile-error" data-chatbot-login-error role="alert" hidden></div>
+                        <button type="submit"><i class="fa-solid fa-sign-in-alt"></i> Login</button>
+                    </form>
+                    <button type="button" class="kasbit-chatbot__back-btn" data-chatbot-back-to-choice>
+                        <i class="fa-solid fa-arrow-left"></i> Back
+                    </button>
+                </div>
+            </div>
+
+            {{-- Hidden guest profile form (not shown, used internally) --}}
+            <form data-chatbot-profile-form style="display:none !important; position:absolute; visibility:hidden;">
+                <select name="department_id"><option value="">Select department</option></select>
+            </form>
 
             <div class="kasbit-chatbot__chat" data-chatbot-chat hidden>
                 <div class="kasbit-chatbot__profile-summary" data-chatbot-profile-summary>

@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust all proxies (ngrok, cloudflare, etc.) for proper HTTPS detection
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
             'student' => EnsureUserIsStudent::class,

@@ -3,11 +3,13 @@
 namespace App\Services\Chatbot;
 
 use App\Models\AiProvider;
+use App\Models\ChatbotDocument;
 use App\Support\ChatbotText;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 class ExternalKnowledgeSourceService
@@ -17,7 +19,9 @@ class ExternalKnowledgeSourceService
      */
     public function fetch(AiProvider $provider, string $question): ?array
     {
-        if (! $provider->knowledge_source_url && ! $provider->knowledge_api_url) {
+        $sourceUrls = $provider->allKnowledgeSourceUrls();
+
+        if (! $sourceUrls && ! $provider->knowledge_api_url && ! ChatbotDocument::active()->exists()) {
             return null;
         }
 
@@ -25,9 +29,12 @@ class ExternalKnowledgeSourceService
         $sources = [];
         $errors = [];
 
-        if ($provider->knowledge_source_url) {
+        // Search uploaded documents first (fastest)
+        $this->searchDocuments($question, $contexts, $sources);
+
+        foreach ($sourceUrls as $url) {
             $this->fetchWebpage(
-                $provider->knowledge_source_url,
+                $url,
                 $question,
                 $contexts,
                 $sources,
@@ -54,6 +61,43 @@ class ExternalKnowledgeSourceService
             'sources' => array_values(array_unique($sources)),
             'errors' => $errors,
         ];
+    }
+
+    /**
+     * Search uploaded documents for relevant content.
+     *
+     * @param  array<int, string>  $contexts
+     * @param  array<int, string>  $sources
+     */
+    private function searchDocuments(string $question, array &$contexts, array &$sources): void
+    {
+        $documents = Cache::remember('chatbot:documents:all', now()->addMinutes(5), function () {
+            return ChatbotDocument::active()->get(['id', 'original_name', 'content'])->toArray();
+        });
+
+        if (empty($documents)) {
+            return;
+        }
+
+        // Always include ALL document content for AI to search through
+        // AI is smart enough to find relevant info from any name, topic, etc.
+        foreach ($documents as $doc) {
+            $content = $doc['content'];
+
+            if (Str::length($content) < 5) {
+                continue;
+            }
+
+            // Limit each document to 15000 chars to avoid token overflow
+            $excerpt = Str::length($content) > 15000
+                ? $this->relevantExcerpt($content, $question)
+                : $content;
+
+            if ($excerpt !== '') {
+                $contexts[] = "--- INTERNAL REFERENCE DATA (do NOT show this header or raw data to user) ---\n" . $excerpt;
+                $sources[] = "Knowledge Base";
+            }
+        }
     }
 
     /**
@@ -156,7 +200,8 @@ class ExternalKnowledgeSourceService
         $ignored = [
             'about', 'available', 'can', 'does', 'find', 'information', 'institute',
             'kasbit', 'know', 'official', 'offer', 'please', 'tell', 'university',
-            'when', 'which', 'who', 'why',
+            'when', 'which', 'who', 'why', 'kar', 'kiya', 'liye', 'raha', 'rahi',
+            'rha', 'rhi',
         ];
         $keywordTokens = collect(ChatbotText::tokens($question))
             ->reject(fn (string $word) => in_array($word, $ignored, true))
@@ -171,7 +216,11 @@ class ExternalKnowledgeSourceService
         try {
             $origin = strtolower((string) ($parts['scheme'] ?? 'https')).'://'.$host;
             $searchUrl = $origin.'/wp-json/wp/v2/search';
+            $normalizedQuestion = ChatbotText::normalize($question);
+            $isBscsQuestion = preg_match('/\b(?:bscs|bs\s*\(?cs\)?|bachelor(?:s)? of computer science)\b/u', $normalizedQuestion) === 1;
             $searchTerms = collect([
+                $isBscsQuestion ? 'bs cs' : null,
+                $isBscsQuestion ? 'bs computer science' : null,
                 $keywordTokens->implode(' '),
                 $keywordTokens->count() > 1 ? $keywordTokens->implode('') : null,
                 ...$keywordTokens,
@@ -319,12 +368,99 @@ class ExternalKnowledgeSourceService
             ' ',
             $body,
         ) ?? $body;
-        $body = preg_replace('/<\/?(?:h[1-6]|p|li|tr|td|th|article|section|main|div|br)[^>]*>/i', "\n", $body) ?? $body;
         $body = preg_replace('/<!--.*?-->/s', ' ', $body) ?? $body;
-        $body = preg_replace('/<[^>]+>/s', ' ', $body) ?? $body;
-        $body = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        return ChatbotText::plainText($body, 100000);
+        if (! class_exists(\DOMDocument::class)) {
+            return $this->htmlFragmentText($body);
+        }
+
+        $previousLibxmlState = libxml_use_internal_errors(true);
+
+        try {
+            $document = new \DOMDocument;
+
+            if (! $document->loadHTML($body, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET)) {
+                return $this->htmlFragmentText($body);
+            }
+
+            $xpath = new \DOMXPath($document);
+            $this->removeWebsiteChrome($xpath);
+            $contentNode = $this->contentNode($xpath) ?? $document->getElementsByTagName('body')->item(0);
+
+            return $this->htmlFragmentText(
+                $contentNode ? (string) $document->saveHTML($contentNode) : $body,
+            );
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previousLibxmlState);
+        }
+    }
+
+    private function removeWebsiteChrome(\DOMXPath $xpath): void
+    {
+        $query = '//script|//style|//noscript|//svg|//template|//header|//nav|//footer|//aside'
+            .'|//*[@role="navigation"]'
+            .'|//*[@id="btnbrochure" or @id="btnprospectus" or @id="btnfee"]'
+            .'|//*[contains(concat(" ", normalize-space(@class), " "), " btnbrochure ")]'
+            .'|//*[contains(concat(" ", normalize-space(@class), " "), " ekit-template-content-footer ")]';
+        $nodes = $xpath->query($query);
+
+        if (! $nodes) {
+            return;
+        }
+
+        foreach (iterator_to_array($nodes) as $node) {
+            $node->parentNode?->removeChild($node);
+        }
+    }
+
+    private function contentNode(\DOMXPath $xpath): ?\DOMNode
+    {
+        $queries = [
+            '//main',
+            '//article',
+            '//*[@id="primary"]',
+            '//*[@id="content"]',
+            '//*[contains(concat(" ", normalize-space(@class), " "), " entry-content ")]',
+            '//*[contains(concat(" ", normalize-space(@class), " "), " post-content ")]',
+            '//*[contains(concat(" ", normalize-space(@class), " "), " site-main ")]',
+            '/html/body/*[contains(concat(" ", normalize-space(@class), " "), " elementor ")'
+                .' and not(contains(@class, "footer")) and not(contains(@class, "header"))]',
+        ];
+
+        foreach ($queries as $query) {
+            $nodes = $xpath->query($query);
+
+            if (! $nodes) {
+                continue;
+            }
+
+            foreach ($nodes as $node) {
+                if (mb_strlen(Str::squish($node->textContent)) >= 40) {
+                    return $node;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function htmlFragmentText(string $html): string
+    {
+        $separator = "\x1E";
+        $html = preg_replace(
+            '/<\/?(?:h[1-6]|p|li|tr|td|th|article|section|main|div|br)[^>]*>/i',
+            $separator,
+            $html,
+        ) ?? $html;
+        $html = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $lines = collect(explode($separator, $html))
+            ->map(fn (string $line) => Str::squish($line))
+            ->filter()
+            ->values()
+            ->all();
+
+        return ChatbotText::plainText(implode("\n", $lines), 100000);
     }
 
     private function apiText(mixed $json, string $body): string
@@ -389,9 +525,17 @@ class ExternalKnowledgeSourceService
             })
             ->filter(fn (array $item) => $item['text'] !== '');
 
-        $selected = $scored->take(3)
-            ->merge($scored->sortByDesc('score')->take(12))
-            ->unique('index')
+        $bestMatches = $scored->filter(fn (array $item) => $item['score'] > 0)
+            ->sortByDesc('score')
+            ->take(12);
+        $selectedIndexes = $bestMatches->flatMap(fn (array $item) => [
+            max(0, $item['index'] - 1),
+            $item['index'],
+            $item['index'] + 1,
+        ])->unique();
+        $selected = ($selectedIndexes->isNotEmpty()
+            ? $scored->filter(fn (array $item) => $selectedIndexes->contains($item['index']))
+            : $scored->take(6))
             ->sortBy('index');
         $excerpt = '';
 

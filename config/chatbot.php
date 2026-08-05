@@ -1,14 +1,14 @@
 <?php
 
 return [
-    'http_timeout' => (int) env('CHATBOT_AI_TIMEOUT', 25),
-    'http_retries' => (int) env('CHATBOT_AI_RETRIES', 2),
+    'http_timeout' => (int) env('CHATBOT_AI_TIMEOUT', 15),
+    'http_retries' => (int) env('CHATBOT_AI_RETRIES', 1),
     'similarity_threshold' => (float) env('CHATBOT_SIMILARITY_THRESHOLD', 72),
     'related_limit' => (int) env('CHATBOT_RELATED_LIMIT', 5),
     'history_limit' => (int) env('CHATBOT_HISTORY_LIMIT', 30),
-    'source_timeout' => (int) env('CHATBOT_SOURCE_TIMEOUT', 8),
+    'source_timeout' => (int) env('CHATBOT_SOURCE_TIMEOUT', 5),
     'source_context_limit' => (int) env('CHATBOT_SOURCE_CONTEXT_LIMIT', 10000),
-    'source_cache_minutes' => (int) env('CHATBOT_SOURCE_CACHE_MINUTES', 10),
+    'source_cache_minutes' => (int) env('CHATBOT_SOURCE_CACHE_MINUTES', 60),
 
     'api_keys' => [
         'OPENAI_API_KEY' => env('OPENAI_API_KEY'),

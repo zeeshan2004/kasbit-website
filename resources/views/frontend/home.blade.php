@@ -150,6 +150,18 @@
     </section>
 @endif
 
+<script>
+(function(){
+    var hero = document.querySelector('.hero-section');
+    if (!hero) return;
+    var img = hero.querySelector('img');
+    if (!img) return;
+    if (img.complete) { hero.classList.add('hero-loaded'); return; }
+    img.addEventListener('load', function(){ hero.classList.add('hero-loaded'); });
+    setTimeout(function(){ hero.classList.add('hero-loaded'); }, 4000);
+})();
+</script>
+
 @if($heroSlides->count() > 1)
     @push('scripts')
         <script>
@@ -531,11 +543,13 @@
                 const syncYoutubePlayback = function () {
                     if (!youtube?.contentWindow) return;
 
-                    youtube.contentWindow.postMessage(JSON.stringify({
-                        event: 'command',
-                        func: youtubeShouldPlay ? 'playVideo' : 'pauseVideo',
-                        args: []
-                    }), 'https://www.youtube.com');
+                    try {
+                        youtube.contentWindow.postMessage(JSON.stringify({
+                            event: 'command',
+                            func: youtubeShouldPlay ? 'playVideo' : 'pauseVideo',
+                            args: []
+                        }), '*');
+                    } catch (e) {}
                 };
 
                 if (youtube) {

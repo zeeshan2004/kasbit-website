@@ -284,6 +284,200 @@ class ChatbotSystemTest extends TestCase
         $this->assertSame(0, ChatbotUnansweredQuestion::count());
     }
 
+    public function test_faculty_fallback_uses_profile_content_without_website_menu_noise(): void
+    {
+        config(['chatbot.api_keys.OPENAI_API_KEY' => 'test-key']);
+        AiProvider::where('type', 'openai')->firstOrFail()->update([
+            'knowledge_source_url' => 'https://kasbit.edu.pk/',
+        ]);
+
+        Http::fake([
+            'kasbit.edu.pk/wp-json/*' => Http::response([
+                [
+                    'title' => 'Shahid Khan',
+                    'url' => 'https://kasbit.edu.pk/shahid-khan/',
+                ],
+            ]),
+            'kasbit.edu.pk/shahid-khan/*' => Http::response(<<<'HTML'
+                <html><body>
+                    <div id="btnbrochure">Program Profile</div>
+                    <div id="btnfee">Fee Structure</div>
+                    <header><nav>Home Programs Admissions SMCHS HYDERI GULSHAN</nav></header>
+                    <div class="elementor elementor-37724">
+                        <h1>Faculty Profile</h1>
+                        <p>Name</p><p>Shahid Khan</p><p>MS</p>
+                        <p>Assistant Professor</p><p>Computer Sciences</p><p>shahid@kasbit.edu.pk</p>
+                        <h2>Overview</h2><p>Profile Summary:</p>
+                        <p>Shahid Khan is a committed academician and researcher with around thirty years of experience in academic and academic administration.</p>
+                        <h2>Research Interest</h2><p>Research Interests:</p>
+                        <p>Shahid Khan's primary research interests include Management Information Systems and Electronic Commerce.</p>
+                    </div>
+                    <footer>SMCHS HYDERI GULSHAN Useful Links</footer>
+                </body></html>
+                HTML),
+            'api.openai.com/*' => Http::response([
+                'error' => ['message' => 'The provider timed out.'],
+            ], 504),
+        ]);
+
+        $response = $this->postJson(route('chatbot.message'), [
+            'message' => 'Shahid Khan ky barai mai batao',
+        ])
+            ->assertOk()
+            ->assertJsonPath('source', 'website_data');
+
+        $answer = $response->json('answer');
+        $this->assertStringContainsString(
+            'Shahid Khan KASBIT ke Computer Sciences department mein Assistant Professor hain.',
+            $answer,
+        );
+        $this->assertStringContainsString('taqreeban 30 saal ka professional tajurba', $answer);
+        $this->assertStringContainsString('Management Information Systems', $answer);
+        $this->assertStringContainsString(
+            '[KASBIT official profile](https://kasbit.edu.pk/shahid-khan/)',
+            $answer,
+        );
+        $this->assertStringNotContainsString('Program Profile', $answer);
+        $this->assertStringNotContainsString('Fee Structure', $answer);
+        $this->assertStringNotContainsString('SMCHS', $answer);
+    }
+
+    public function test_bscs_question_prefers_the_program_page_and_replies_in_roman_urdu(): void
+    {
+        config(['chatbot.api_keys.OPENAI_API_KEY' => 'test-key']);
+        AiProvider::where('type', 'openai')->firstOrFail()->update([
+            'knowledge_source_url' => 'https://kasbit.edu.pk/',
+        ]);
+
+        Http::fake([
+            'kasbit.edu.pk/wp-json/*' => Http::response([
+                [
+                    'title' => 'BS (CS)',
+                    'url' => 'https://kasbit.edu.pk/bs-cs/',
+                ],
+                [
+                    'title' => 'Faculty Computer Science',
+                    'url' => 'https://kasbit.edu.pk/faculty-computer-science/',
+                ],
+            ]),
+            'kasbit.edu.pk/bs-cs/*' => Http::response(<<<'HTML'
+                <html><body><main>
+                    <h1>Bachelor of Computer Science</h1>
+                    <h2>Course Work and Duration</h2>
+                    <p>4-Year, 8-Semester, (42 Courses + 2 FYP), 130 CH Degree Program</p>
+                    <h2>ELIGIBILITY</h2>
+                    <p>For admission in the BS(CS) Program, the applicant must have completed 12 Years of Education with atleast 50% marks.</p>
+                    <p>The applicant has to take an institute based admission test.</p>
+                    <p>On successfully qualifying the Admission Test, the applicant shall be called for a Final Interview.</p>
+                    <h2>Program Schema</h2>
+                    <p>Programming Fundamentals (Core)</p>
+                    <p>Object Oriented Programming (Core)</p>
+                    <p>Database Systems (Core)</p>
+                    <p>Artificial Intelligence (Core)</p>
+                    <p>Computer Networks (Core)</p>
+                    <p>Software Engineering (Core)</p>
+                    <p>Cyber Security</p>
+                </main></body></html>
+                HTML),
+            'api.openai.com/*' => Http::response([
+                'error' => ['message' => 'The provider timed out.'],
+            ], 504),
+        ]);
+
+        $response = $this->postJson(route('chatbot.message'), [
+            'message' => 'Kasbit bscs ky liye kiya programs offer kar ra hai?',
+        ])
+            ->assertOk()
+            ->assertJsonPath('source', 'website_data');
+
+        $answer = $response->json('answer');
+        $this->assertStringContainsString(
+            'KASBIT BSCS yani Bachelor of Computer Science program offer karta hai.',
+            $answer,
+        );
+        $this->assertStringContainsString('4 saal aur 8 semesters', $answer);
+        $this->assertStringContainsString('42 courses, 2 Final Year Projects', $answer);
+        $this->assertStringContainsString('Artificial Intelligence', $answer);
+        $this->assertStringContainsString('kam az kam 50% marks', $answer);
+        $this->assertStringContainsString(
+            '[KASBIT BSCS official page](https://kasbit.edu.pk/bs-cs/)',
+            $answer,
+        );
+        $this->assertStringNotContainsString('Basheer Ullah', $answer);
+        $this->assertStringNotContainsString('According to', $answer);
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/wp-json/wp/v2/search')) {
+                return false;
+            }
+
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+            return ($query['search'] ?? null) === 'bs cs';
+        });
+        Http::assertNotSent(fn ($request) => $request->url() === 'https://kasbit.edu.pk/faculty-computer-science/');
+    }
+
+    public function test_adp_program_fallback_summarizes_metadata_instead_of_dumping_semester_schema(): void
+    {
+        config(['chatbot.api_keys.OPENAI_API_KEY' => 'test-key']);
+        AiProvider::where('type', 'openai')->firstOrFail()->update([
+            'knowledge_source_url' => 'https://kasbit.edu.pk/',
+        ]);
+
+        $programUrl = 'https://kasbit.edu.pk/associate-degree-in-computer-infrastructure-and-networking/';
+        Http::fake([
+            'kasbit.edu.pk/wp-json/*' => Http::response([
+                ['title' => 'Associate Degree in Computer infrastructure and networking', 'url' => $programUrl],
+            ]),
+            $programUrl => Http::response(<<<'HTML'
+                <html><body><main>
+                    <h1>Associate Degree in Computer infrastructure and networking</h1>
+                    <h2>Course Work and Duration</h2>
+                    <p>Based on 04 semesters of 05 months each</p>
+                    <p>Intake:</p><p>Twice a year (Spring & Fall)</p>
+                    <p>Total Credit Hours:</p><p>72</p>
+                    <p>Total Courses:</p><p>24</p>
+                    <p>Maximum Load:</p><p>06 Courses per Semester</p>
+                    <h2>ELIGIBILITY</h2>
+                    <p>For admission in the ADP Program, the applicant must have completed 12 Years of Education or A level with Minimum two C's or equivalent.</p>
+                    <p>The applicant has to take an institute based Admission Test.</p>
+                    <p>After qualifying the Admission Test, the applicant shall be called for a final interview.</p>
+                    <h2>Program Schema</h2>
+                    <p>Semester I</p><p>1</p><p>History of Arts &amp; Literature</p>
+                    <p>2</p><p>Introduction to Computers</p><p>3</p><p>Contemporary World</p>
+                    <p>4</p><p>Expository Writing – I</p><p>5</p><p>Fundamentals of Management</p>
+                    <p>Semester II</p><p>1</p><p>Programming Fundamentals</p>
+                    <p>2</p><p>Introduction to Computer Networks</p>
+                </main></body></html>
+                HTML),
+            'api.openai.com/*' => Http::response([
+                'error' => ['message' => 'The provider timed out.'],
+            ], 504),
+        ]);
+
+        $response = $this->postJson(route('chatbot.message'), [
+            'message' => 'KASBIT ka ADP computer networking course simple batao',
+        ])
+            ->assertOk()
+            ->assertJsonPath('source', 'website_data');
+
+        $answer = $response->json('answer');
+        $this->assertStringContainsString(
+            'KASBIT Associate Degree in Computer infrastructure and networking program offer karta hai.',
+            $answer,
+        );
+        $this->assertStringContainsString('4 semesters', $answer);
+        $this->assertStringContainsString('har semester 5 months', $answer);
+        $this->assertStringContainsString('24 courses, total 72 credit hours', $answer);
+        $this->assertStringContainsString('Spring aur Fall', $answer);
+        $this->assertStringContainsString('Introduction to Computer Networks', $answer);
+        $this->assertStringContainsString('12 years education', $answer);
+        $this->assertStringNotContainsString('Semester I', $answer);
+        $this->assertStringNotContainsString('Program Schema', $answer);
+        $this->assertStringNotContainsString('According to', $answer);
+    }
+
     public function test_ai_missing_information_reply_is_replaced_when_targeted_source_exists(): void
     {
         config(['chatbot.api_keys.OPENAI_API_KEY' => 'test-key']);

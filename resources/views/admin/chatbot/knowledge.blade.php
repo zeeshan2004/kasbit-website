@@ -50,6 +50,51 @@
                     </form>
                 </details>
 
+                {{-- Data Import Section --}}
+                <details class="management-panel chatbot-disclosure">
+                    <summary><i class="fa-solid fa-file-import"></i> Import Data Files</summary>
+                    <div class="chatbot-import-section">
+                        <h5>Upload Knowledge Data</h5>
+                        <p>Upload any data files (.csv, .txt). The AI will read this data and use it to answer user questions automatically. No specific format needed — just raw data.</p>
+                        <form method="POST" action="{{ route('admin.chatbot.knowledge.import') }}" enctype="multipart/form-data" id="csv-import-form">
+                            @csrf
+                            <div class="chatbot-form-stack">
+                                <label>Data Files
+                                    <input type="file" name="files[]" accept=".csv,.txt,.md" multiple required id="csv-file-input">
+                                </label>
+                            </div>
+                            <div class="chatbot-file-list" id="csv-file-list" hidden></div>
+                            @if($errors->has('files') || $errors->has('files.*'))
+                                <div class="chatbot-import-result chatbot-import-result--error" style="margin-top:.5rem;">
+                                    {{ $errors->first('files') ?: $errors->first('files.*') }}
+                                </div>
+                            @endif
+                            <button class="admin-button admin-button--primary" style="margin-top:.6rem;"><i class="fa-solid fa-upload"></i> Import</button>
+                        </form>
+
+                        @php
+                            $documents = \App\Models\ChatbotDocument::where('is_active', true)->latest()->get();
+                        @endphp
+                        @if($documents->count() > 0)
+                            <div class="chatbot-import-result chatbot-import-result--success" style="margin-top:.8rem;">
+                                <strong><i class="fa-solid fa-check-circle"></i> {{ $documents->count() }} file(s)</strong> uploaded. AI is using this data.
+                            </div>
+                            <div class="chatbot-file-list" style="margin-top:.5rem;">
+                                @foreach($documents as $doc)
+                                    <div class="chatbot-file-item">
+                                        <i class="fa-solid fa-file-lines"></i>
+                                        <span>{{ $doc->original_name }} <small>({{ number_format($doc->content_length / 1024, 1) }} KB · {{ $doc->created_at->diffForHumans() }})</small></span>
+                                        <form method="POST" action="{{ route('admin.chatbot.knowledge.import.delete', $doc) }}" style="margin:0;" data-confirm-message="Remove this file?">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="chatbot-file-remove" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+                                        </form>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </details>
+
                 <section class="management-panel">
                     <form method="GET" action="{{ route('admin.chatbot.knowledge.index') }}">
                         <div class="chatbot-filter-row">
@@ -100,4 +145,51 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+    (() => {
+        const input = document.getElementById('csv-file-input');
+        const list = document.getElementById('csv-file-list');
+        if (!input || !list) return;
+
+        const renderList = () => {
+            const dt = input.files;
+            if (!dt || dt.length === 0) {
+                list.hidden = true;
+                list.innerHTML = '';
+                return;
+            }
+
+            list.hidden = false;
+            list.innerHTML = '';
+
+            for (let i = 0; i < dt.length; i++) {
+                const file = dt[i];
+                const item = document.createElement('div');
+                item.className = 'chatbot-file-item';
+                item.innerHTML = '<i class="fa-solid fa-file-csv"></i> '
+                    + '<span>' + file.name + ' <small>(' + (file.size / 1024).toFixed(1) + ' KB)</small></span>'
+                    + '<button type="button" class="chatbot-file-remove" title="Remove" data-index="' + i + '"><i class="fa-solid fa-xmark"></i></button>';
+                list.appendChild(item);
+            }
+        };
+
+        input.addEventListener('change', renderList);
+
+        list.addEventListener('click', (e) => {
+            const btn = e.target.closest('.chatbot-file-remove');
+            if (!btn) return;
+
+            const index = parseInt(btn.dataset.index);
+            const dt = new DataTransfer();
+            for (let i = 0; i < input.files.length; i++) {
+                if (i !== index) dt.items.add(input.files[i]);
+            }
+            input.files = dt.files;
+            renderList();
+        });
+    })();
+    </script>
+    @endpush
 </x-admin-layout>

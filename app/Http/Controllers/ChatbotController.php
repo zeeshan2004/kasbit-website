@@ -6,6 +6,7 @@ use App\Http\Requests\SendChatbotMessageRequest;
 use App\Http\Requests\SaveChatbotProfileRequest;
 use App\Models\ChatbotSetting;
 use App\Models\Department;
+use App\Models\User;
 use App\Services\Chatbot\ChatbotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -87,6 +88,76 @@ class ChatbotController extends Controller
         $this->chatbot->clear($request);
 
         return response()->json(['message' => 'Chat history cleared.']);
+    }
+
+    public function login(Request $request): JsonResponse
+    {
+        $settings = ChatbotSetting::current();
+        $this->ensureAvailable($settings);
+
+        $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $key = 'chatbot-login:' . $request->ip();
+
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            return response()->json([
+                'message' => 'Too many login attempts. Please wait a moment and try again.',
+            ], 429);
+        }
+
+        $authenticated = Auth::guard('student')->attempt([
+            'email' => strtolower(trim($request->input('email'))),
+            'password' => $request->input('password'),
+            'role' => 'student',
+            'is_active' => true,
+        ]);
+
+        if (! $authenticated) {
+            RateLimiter::hit($key, 60);
+
+            return response()->json([
+                'message' => 'The email or password is incorrect, or the account is inactive.',
+            ], 422);
+        }
+
+        $request->session()->regenerate();
+        RateLimiter::clear($key);
+
+        $user = Auth::guard('student')->user();
+        $department = $user->department;
+
+        $profile = $this->chatbot->saveProfile($request, [
+            'student_id' => $user->student_id ?? $user->email,
+            'full_name' => $user->name,
+            'department_id' => $department?->id ?? 0,
+            'department_name' => $department?->name ?? 'N/A',
+        ]);
+
+        return response()->json([
+            'message' => 'Login successful.',
+            'profile' => $profile,
+        ]);
+    }
+
+    public function guest(Request $request): JsonResponse
+    {
+        $settings = ChatbotSetting::current();
+        $this->ensureAvailable($settings);
+
+        $profile = $this->chatbot->saveProfile($request, [
+            'student_id' => 'GUEST',
+            'full_name' => 'Guest User',
+            'department_id' => 0,
+            'department_name' => 'General',
+        ]);
+
+        return response()->json([
+            'message' => 'Welcome! You can now ask your question.',
+            'profile' => $profile,
+        ]);
     }
 
     private function ensureAvailable(ChatbotSetting $settings): void

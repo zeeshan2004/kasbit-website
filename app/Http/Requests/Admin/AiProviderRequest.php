@@ -30,6 +30,8 @@ class AiProviderRequest extends FormRequest
             'api_key_env' => ['required', 'string', 'max:100', 'regex:/^[A-Z][A-Z0-9_]*$/'],
             'system_prompt' => ['nullable', 'string', 'max:10000'],
             'knowledge_source_url' => ['nullable', 'url:http,https', 'max:2048'],
+            'knowledge_source_urls' => ['nullable', 'array', 'max:10'],
+            'knowledge_source_urls.*' => ['nullable', 'url:http,https', 'max:2048'],
             'knowledge_api_url' => ['nullable', 'url:http,https', 'max:2048'],
             'knowledge_api_key_env' => ['nullable', 'string', 'max:100', 'regex:/^[A-Z][A-Z0-9_]*$/'],
             'temperature' => ['nullable', 'numeric', 'between:0,2'],

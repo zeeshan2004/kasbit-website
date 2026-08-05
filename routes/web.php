@@ -59,6 +59,8 @@ Route::get('/event-gallery/{album:slug}', [PageController::class, 'eventAlbum'])
 Route::prefix('chatbot')->name('chatbot.')->group(function () {
     Route::get('/bootstrap', [ChatbotController::class, 'bootstrap'])->name('bootstrap');
     Route::post('/profile', [ChatbotController::class, 'profile'])->name('profile');
+    Route::post('/login', [ChatbotController::class, 'login'])->name('login');
+    Route::post('/guest', [ChatbotController::class, 'guest'])->name('guest');
     Route::post('/message', [ChatbotController::class, 'message'])->name('message');
     Route::delete('/conversation', [ChatbotController::class, 'clear'])->name('clear');
 });
@@ -126,10 +128,18 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
 
         Route::get('/knowledge', [ChatbotKnowledgeController::class, 'index'])->name('knowledge.index');
         Route::post('/knowledge', [ChatbotKnowledgeController::class, 'store'])->name('knowledge.store');
+        Route::post('/knowledge/import', [ChatbotKnowledgeController::class, 'import'])->name('knowledge.import');
+        Route::delete('/knowledge/import/{document}', [ChatbotKnowledgeController::class, 'deleteDocument'])->name('knowledge.import.delete');
         Route::put('/knowledge/{knowledge}', [ChatbotKnowledgeController::class, 'update'])->name('knowledge.update');
         Route::delete('/knowledge/{knowledge}', [ChatbotKnowledgeController::class, 'destroy'])->name('knowledge.destroy');
         Route::post('/categories', [ChatbotKnowledgeController::class, 'storeCategory'])->name('categories.store');
         Route::delete('/categories/{category}', [ChatbotKnowledgeController::class, 'destroyCategory'])->name('categories.destroy');
+
+        Route::get('/data', [\App\Http\Controllers\Admin\ChatbotKnowledgeDataController::class, 'index'])->name('data.index');
+        Route::post('/data', [\App\Http\Controllers\Admin\ChatbotKnowledgeDataController::class, 'store'])->name('data.store');
+        Route::put('/data/{knowledgeData}', [\App\Http\Controllers\Admin\ChatbotKnowledgeDataController::class, 'update'])->name('data.update');
+        Route::delete('/data/{knowledgeData}', [\App\Http\Controllers\Admin\ChatbotKnowledgeDataController::class, 'destroy'])->name('data.destroy');
+        Route::post('/data/import', [\App\Http\Controllers\Admin\ChatbotKnowledgeDataController::class, 'importCsv'])->name('data.import');
 
         Route::get('/unanswered', [ChatbotUnansweredController::class, 'index'])->name('unanswered.index');
         Route::put('/unanswered/{unanswered}', [ChatbotUnansweredController::class, 'update'])->name('unanswered.update');

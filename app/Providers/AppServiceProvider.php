@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Providers;
-
+use Illuminate\Support\Facades\URL;
 use App\Models\FooterSetting;
 use App\Models\HeaderMenu;
 use App\Models\HomePage;
@@ -30,6 +30,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Force HTTPS when behind proxy (ngrok) or when request is secure
+        if (request()->isSecure()
+            || request()->header('X-Forwarded-Proto') === 'https'
+            || str_contains((string) request()->header('Host'), 'ngrok')) {
+            URL::forceScheme('https');
+        }
         View::composer('components.admin-layout', function ($view) {
             $adminWebsiteSections = collect();
 

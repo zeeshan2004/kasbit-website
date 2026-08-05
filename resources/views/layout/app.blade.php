@@ -6,6 +6,18 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name') }}</title>
 
+    {{-- Inline critical loader CSS — works immediately without waiting for external CSS --}}
+    <style>
+        .page-loader{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:#fff;opacity:1;visibility:visible;transition:opacity .3s,visibility .3s}
+        .page-loader--hidden{opacity:0;visibility:hidden;pointer-events:none}
+        .page-loader__content{display:flex;flex-direction:column;align-items:center}
+        .page-loader__spinner{position:relative;display:grid;place-items:center;width:60px;height:60px;margin-bottom:10px}
+        .page-loader__ring{position:absolute;inset:0;border:3px solid #e7f0f8;border-top-color:#07559d;border-right-color:#f58220;border-radius:50%;animation:loaderSpin .7s linear infinite}
+        .page-loader__logo{display:block;width:38px;height:38px;border-radius:50%;object-fit:contain}
+        .page-loader__text{color:#07559d;font-size:11px;font-weight:700}
+        @keyframes loaderSpin{to{transform:rotate(360deg)}}
+    </style>
+
     @php
         $firstHeroSlide = ($heroSlides ?? collect())->first();
         $firstHeroPreloadSrcset = $firstHeroSlide
@@ -246,7 +258,7 @@
         (() => {
             const loader = document.getElementById('pageLoader');
             const startedAt = performance.now();
-            const minimumDisplay = 250;
+            const minimumDisplay = 150;
 
             if (!loader) return;
 
@@ -272,6 +284,9 @@
             window.addEventListener('pageshow', (event) => {
                 if (event.persisted) hideLoader();
             });
+
+            // Hard max — loader never shows more than 1.5 seconds no matter what
+            window.setTimeout(hideLoader, 1500);
 
             document.addEventListener('click', (event) => {
                 const link = event.target.closest('a[href]');
@@ -299,7 +314,6 @@
             });
 
             document.addEventListener('submit', showLoader);
-            window.setTimeout(hideLoader, 1500);
         })();
     </script>
 </body>

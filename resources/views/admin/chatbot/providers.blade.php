@@ -33,6 +33,24 @@
                     <label>Maximum Output Tokens<input type="number" name="max_tokens" value="{{ old('max_tokens', 1200) }}" min="64" max="32000" required></label>
                     <label class="chatbot-span-2">Provider Instructions (optional)<textarea name="system_prompt" rows="3">{{ old('system_prompt') }}</textarea></label>
                     <label class="chatbot-span-2">Knowledge Source URL <small>Public webpage the assistant should read before answering.</small><input type="url" name="knowledge_source_url" value="{{ old('knowledge_source_url') }}" placeholder="https://www.example.edu/admissions"></label>
+                    <div class="chatbot-span-2">
+                        <label>Additional Knowledge Source URLs <small>Add up to 10 public webpages for richer responses.</small></label>
+                        <div data-knowledge-urls-group>
+                            <div class="chatbot-url-list" data-knowledge-urls-list>
+                                @if(old('knowledge_source_urls'))
+                                    @foreach(old('knowledge_source_urls') as $i => $url)
+                                        @if($url)
+                                            <div class="chatbot-url-item">
+                                                <input type="url" name="knowledge_source_urls[]" value="{{ $url }}" placeholder="https://...">
+                                                <button type="button" class="chatbot-url-remove" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                @endif
+                            </div>
+                            <button type="button" class="admin-button admin-button--secondary admin-button--sm" data-add-knowledge-url><i class="fa-solid fa-plus"></i> Add URL</button>
+                        </div>
+                    </div>
                     <label class="chatbot-span-2">Knowledge API URL <small>A GET request is sent with the visitor question in the <code>question</code> query parameter.</small><input type="url" name="knowledge_api_url" value="{{ old('knowledge_api_url') }}" placeholder="https://api.example.edu/knowledge"></label>
                     <label class="chatbot-span-2">Knowledge API Key Environment Variable <small>Optional bearer token; keep the actual secret in <code>.env</code>.</small><input name="knowledge_api_key_env" value="{{ old('knowledge_api_key_env') }}" placeholder="KNOWLEDGE_API_KEY"></label>
                 </div>
@@ -76,6 +94,22 @@
                             <label>Max Tokens<input type="number" name="max_tokens" value="{{ $provider->max_tokens }}" min="64" max="32000"></label>
                             <label class="chatbot-span-2">Provider Instructions<textarea name="system_prompt" rows="3">{{ $provider->system_prompt }}</textarea></label>
                             <label class="chatbot-span-2">Knowledge Source URL <small>Public webpage the assistant reads as live reference data.</small><input type="url" name="knowledge_source_url" value="{{ $provider->knowledge_source_url }}" placeholder="https://www.example.edu/admissions"></label>
+                            <div class="chatbot-span-2">
+                                <label>Additional Knowledge Source URLs <small>Add up to 10 public webpages.</small></label>
+                                <div data-knowledge-urls-group>
+                                    <div class="chatbot-url-list" data-knowledge-urls-list>
+                                        @foreach(($provider->knowledge_source_urls ?? []) as $url)
+                                            @if($url)
+                                                <div class="chatbot-url-item">
+                                                    <input type="url" name="knowledge_source_urls[]" value="{{ $url }}" placeholder="https://...">
+                                                    <button type="button" class="chatbot-url-remove" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                    <button type="button" class="admin-button admin-button--secondary admin-button--sm" data-add-knowledge-url><i class="fa-solid fa-plus"></i> Add URL</button>
+                                </div>
+                            </div>
                             <label class="chatbot-span-2">Knowledge API URL <small>Receives a GET request with <code>question=&lt;visitor question&gt;</code>.</small><input type="url" name="knowledge_api_url" value="{{ $provider->knowledge_api_url }}" placeholder="https://api.example.edu/knowledge"></label>
                             <label class="chatbot-span-2">Knowledge API Key Environment Variable <small>Optional bearer token stored in <code>.env</code>, not in the database.</small><input name="knowledge_api_key_env" value="{{ $provider->knowledge_api_key_env }}" placeholder="KNOWLEDGE_API_KEY"></label>
                         </div>
@@ -164,6 +198,31 @@
 
                 type.addEventListener('change', applyPreset);
                 applyPreset();
+            })();
+
+            // Multiple Knowledge URLs - Add/Remove
+            (() => {
+                document.addEventListener('click', (event) => {
+                    const addBtn = event.target.closest('[data-add-knowledge-url]');
+                    if (addBtn) {
+                        const group = addBtn.closest('[data-knowledge-urls-group]');
+                        const list = group.querySelector('[data-knowledge-urls-list]');
+                        const count = list.querySelectorAll('.chatbot-url-item').length;
+                        if (count >= 10) return;
+
+                        const item = document.createElement('div');
+                        item.className = 'chatbot-url-item';
+                        item.innerHTML = '<input type="url" name="knowledge_source_urls[]" placeholder="https://..." required>'
+                            + '<button type="button" class="chatbot-url-remove" title="Remove"><i class="fa-solid fa-xmark"></i></button>';
+                        list.appendChild(item);
+                        item.querySelector('input').focus();
+                    }
+
+                    const removeBtn = event.target.closest('.chatbot-url-remove');
+                    if (removeBtn) {
+                        removeBtn.closest('.chatbot-url-item').remove();
+                    }
+                });
             })();
         </script>
     @endpush
