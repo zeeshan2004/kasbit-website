@@ -6,16 +6,15 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name') }}</title>
 
-    {{-- Inline critical loader CSS — works immediately without waiting for external CSS --}}
+    {{-- Inline critical loader --}}
     <style>
-        .page-loader{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:#fff;opacity:1;visibility:visible;transition:opacity .3s,visibility .3s}
-        .page-loader--hidden{opacity:0;visibility:hidden;pointer-events:none}
-        .page-loader__content{display:flex;flex-direction:column;align-items:center}
-        .page-loader__spinner{position:relative;display:grid;place-items:center;width:60px;height:60px;margin-bottom:10px}
-        .page-loader__ring{position:absolute;inset:0;border:3px solid #e7f0f8;border-top-color:#07559d;border-right-color:#f58220;border-radius:50%;animation:loaderSpin .7s linear infinite}
-        .page-loader__logo{display:block;width:38px;height:38px;border-radius:50%;object-fit:contain}
-        .page-loader__text{color:#07559d;font-size:11px;font-weight:700}
-        @keyframes loaderSpin{to{transform:rotate(360deg)}}
+        #pageLoader{position:fixed!important;inset:0!important;z-index:99999!important;display:flex!important;align-items:center!important;justify-content:center!important;flex-direction:column!important;gap:8px!important;background:#fff!important;padding:20px!important}
+        #pageLoader.page-loader--hidden{display:none!important}
+        #pageLoader .pl-wrap{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;width:clamp(50px,12vw,70px)!important;height:clamp(50px,12vw,70px)!important}
+        #pageLoader .page-loader__ring{position:absolute!important;inset:0!important;border:clamp(3px,0.8vw,4px) solid #e7f0f8!important;border-top-color:#07559d!important;border-right-color:#f58220!important;border-radius:50%!important;animation:s .6s linear infinite!important}
+        #pageLoader .pl-logo{width:clamp(28px,8vw,42px)!important;height:clamp(28px,8vw,42px)!important;border-radius:50%!important;object-fit:contain!important}
+        #pageLoader .page-loader__text{color:#07559d!important;font:700 clamp(10px,2.5vw,13px)/1 sans-serif!important}
+        @keyframes s{to{transform:rotate(360deg)}}
     </style>
 
     @php
@@ -54,21 +53,29 @@
         <div class="site-cursor" style="--site-cursor-color: {{ $cursorColor }};" aria-hidden="true"></div>
     @endif
     @if($loaderIsActive)
-        <div id="pageLoader" class="page-loader page-loader--hidden" role="status" aria-live="polite" aria-label="Loading page">
-            <div class="page-loader__content">
-                <div class="page-loader__spinner">
-                    <span class="page-loader__ring" aria-hidden="true"></span>
-                    @if(($home ?? null)?->loader_logo_url)
-                        <img src="{{ asset($home->loader_logo_url) }}" alt="" class="page-loader__logo">
-                    @else
-                        <i class="fa-solid fa-graduation-cap page-loader__fallback-icon" aria-hidden="true"></i>
-                    @endif
-                </div>
-                @if($loaderText !== '')
-                    <div class="page-loader__text">{{ $loaderText }}</div>
+        <div id="pageLoader" class="page-loader" role="status">
+            <div class="pl-wrap">
+                <div class="page-loader__ring"></div>
+                @if(($home ?? null)?->loader_logo_url)
+                    <img src="{{ asset($home->loader_logo_url) }}" alt="" class="pl-logo">
                 @endif
             </div>
+            <div class="page-loader__text">{{ $loaderText ?: 'Loading...' }}</div>
         </div>
+        <script>
+            (function(){
+                var l = document.getElementById('pageLoader');
+                var done = false;
+                var h = function(){ if(done)return; done=true; l.classList.add('page-loader--hidden'); };
+
+                // Hide loader only when everything is fully loaded
+                if (document.readyState === 'complete') h();
+                else window.addEventListener('load', h);
+
+                // Safety — max 8 seconds
+                setTimeout(h, 8000);
+            })();
+        </script>
     @endif
 
     @yield('content')
@@ -257,37 +264,9 @@
 
         (() => {
             const loader = document.getElementById('pageLoader');
-            const startedAt = performance.now();
-            const minimumDisplay = 150;
-
             if (!loader) return;
 
-            const showLoader = () => {
-                loader.classList.remove('page-loader--hidden');
-                document.body.classList.add('page-loading');
-            };
-
-            const hideLoader = () => {
-                const delay = Math.max(0, minimumDisplay - (performance.now() - startedAt));
-
-                window.setTimeout(() => {
-                    loader.classList.add('page-loader--hidden');
-                    document.body.classList.remove('page-loading');
-                }, delay);
-            };
-
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', hideLoader, { once: true });
-            } else {
-                hideLoader();
-            }
-            window.addEventListener('pageshow', (event) => {
-                if (event.persisted) hideLoader();
-            });
-
-            // Hard max — loader never shows more than 1.5 seconds no matter what
-            window.setTimeout(hideLoader, 1500);
-
+            // Only handle showing loader on navigation (link clicks / form submits)
             document.addEventListener('click', (event) => {
                 const link = event.target.closest('a[href]');
 
@@ -310,10 +289,16 @@
                     && destination.search === window.location.search
                     && destination.hash;
 
-                if (!samePageAnchor && destination.protocol.startsWith('http')) showLoader();
+                if (!samePageAnchor && destination.protocol.startsWith('http')) {
+                    loader.classList.remove('page-loader--hidden');
+                }
             });
 
-            document.addEventListener('submit', showLoader);
+            document.addEventListener('submit', (e) => {
+                // Don't show page loader for chatbot forms
+                if (e.target.closest('#kasbit-chatbot')) return;
+                loader.classList.remove('page-loader--hidden');
+            });
         })();
     </script>
 </body>

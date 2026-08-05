@@ -31,7 +31,6 @@ class StudentRegisterRequest extends FormRequest
                 'required',
                 'email',
                 'max:255',
-                'regex:/^[^@\s]+@kasbit\.edu\.pk$/i',
                 Rule::unique('users', 'email'),
             ],
             'student_id' => [
@@ -53,7 +52,6 @@ class StudentRegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.regex' => 'Please use your KASBIT email address ending in @kasbit.edu.pk.',
             'student_id.regex' => 'Student ID may only contain letters, numbers, dashes and slashes.',
             'program_id.in' => 'Please select an active KASBIT program.',
         ];

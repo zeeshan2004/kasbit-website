@@ -42,7 +42,7 @@
                                    type="email"
                                    name="email"
                                    value="{{ old('email') }}"
-                                   placeholder="student@kasbit.edu.pk"
+                                   placeholder="your@email.com"
                                    required>
                             @error('email')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
@@ -63,13 +63,11 @@
                             <select id="register-program" name="program_id" required>
                                 <option value="">Select program or course</option>
                                 @foreach($programGroups as $programGroup)
-                                    <optgroup label="{{ $programGroup->name }}">
-                                        @foreach($programGroup->children as $program)
-                                            <option value="{{ $program->id }}" @selected((int) old('program_id') === $program->id)>
-                                                {{ $program->name }}
-                                            </option>
-                                        @endforeach
-                                    </optgroup>
+                                    @foreach($programGroup->children as $program)
+                                        <option value="{{ $program->id }}" @selected((int) old('program_id') === $program->id)>
+                                            {{ $program->name }}
+                                        </option>
+                                    @endforeach
                                 @endforeach
                             </select>
                             @error('program_id')<p class="field-error">{{ $message }}</p>@enderror

@@ -39,8 +39,14 @@ class ChatbotKnowledgeData extends Model
      */
     public static function search(string $question, ?string $intent = null, int $limit = 3)
     {
-        $query = static::active();
+        // Expand common abbreviations
+        $expandedQuestion = self::expandAbbreviations($question);
+        $searchTerms = array_unique(array_merge(
+            array_filter(explode(' ', $question), fn($w) => mb_strlen($w) >= 2),
+            array_filter(explode(' ', $expandedQuestion), fn($w) => mb_strlen($w) >= 2),
+        ));
 
+        $query = static::active();
         if ($intent) {
             $query->where('intent', $intent);
         }
@@ -48,45 +54,54 @@ class ChatbotKnowledgeData extends Model
         // Try FULLTEXT search first
         $results = $query->whereRaw(
             'MATCH(title, content, keywords) AGAINST(? IN NATURAL LANGUAGE MODE)',
-            [$question]
+            [$expandedQuestion]
         )->limit($limit)->get();
 
-        // Fallback to LIKE search if FULLTEXT returns nothing
-        if ($results->isEmpty()) {
-            $words = array_filter(explode(' ', $question), fn($w) => mb_strlen($w) >= 3);
-            $query = static::active();
+        if ($results->isNotEmpty()) return $results;
 
-            if ($intent) {
-                $query->where('intent', $intent);
+        // Fallback: OR search with all terms
+        $query = static::active();
+        if ($intent) {
+            $query->where('intent', $intent);
+        }
+
+        $query->where(function ($q) use ($searchTerms) {
+            foreach (array_slice($searchTerms, 0, 8) as $word) {
+                $q->orWhere('title', 'like', "%{$word}%")
+                  ->orWhere('content', 'like', "%{$word}%")
+                  ->orWhere('keywords', 'like', "%{$word}%");
             }
+        });
 
-            foreach (array_slice($words, 0, 5) as $word) {
-                $query->where(function ($q) use ($word) {
-                    $q->where('title', 'like', "%{$word}%")
-                      ->orWhere('content', 'like', "%{$word}%")
-                      ->orWhere('keywords', 'like', "%{$word}%");
-                });
-            }
+        return $query->limit($limit)->get();
+    }
 
-            $results = $query->limit($limit)->get();
+    /**
+     * Expand common program abbreviations to full names for better search.
+     */
+    private static function expandAbbreviations(string $text): string
+    {
+        $map = [
+            'bscs' => 'BS Computer Science',
+            'bba' => 'BBA Bachelor Business Administration',
+            'mba' => 'MBA Master Business Administration',
+            'mcs' => 'MCS Master Computer Science',
+            'bs cs' => 'BS Computer Science',
+            'bs af' => 'BS Accounting Finance',
+            'phd' => 'Ph.D Doctorate',
+            'ms' => 'MS Master',
+            'adp' => 'Associate Degree Program',
+        ];
 
-            // If AND search fails, try OR search
-            if ($results->isEmpty() && count($words) > 1) {
-                $query = static::active();
-                if ($intent) {
-                    $query->where('intent', $intent);
-                }
-                $query->where(function ($q) use ($words) {
-                    foreach (array_slice($words, 0, 5) as $word) {
-                        $q->orWhere('title', 'like', "%{$word}%")
-                          ->orWhere('content', 'like', "%{$word}%")
-                          ->orWhere('keywords', 'like', "%{$word}%");
-                    }
-                });
-                $results = $query->limit($limit)->get();
+        $lower = strtolower($text);
+        $expanded = $text;
+
+        foreach ($map as $abbr => $full) {
+            if (str_contains($lower, $abbr)) {
+                $expanded .= ' ' . $full;
             }
         }
 
-        return $results;
+        return $expanded;
     }
 }

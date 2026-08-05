@@ -30,7 +30,6 @@
                     <div class="dropdown top-login-dropdown">
                         <button type="button"
                                 class="top-login-toggle"
-                                data-bs-toggle="dropdown"
                                 aria-expanded="false"
                                 aria-label="Open login links">
                             <i class="{{ $studentUser ? 'fa-solid fa-user-check' : $loginMenuIcon }} top-login-icon" aria-hidden="true"></i>
@@ -142,6 +141,27 @@
             </div>
         </div>
     </div>
+    <script>
+    (function(){
+        var d = document.querySelector('.top-login-dropdown');
+        if (!d) return;
+        var btn = d.querySelector('.top-login-toggle');
+        var menu = d.querySelector('.dropdown-menu');
+        if (!btn || !menu) return;
+        btn.addEventListener('click', function(e){
+            e.stopPropagation();
+            var open = menu.classList.contains('show');
+            menu.classList.toggle('show', !open);
+            btn.classList.toggle('show', !open);
+        });
+        document.addEventListener('click', function(e){
+            if (!d.contains(e.target)){
+                menu.classList.remove('show');
+                btn.classList.remove('show');
+            }
+        });
+    })();
+    </script>
 @endif
 
 <header class="site-header sticky-top">
@@ -512,6 +532,48 @@
                 window.addEventListener('resize', fitHeaderMenu, { passive: true });
                 document.fonts?.ready.then(fitHeaderMenu);
                 fitHeaderMenu();
+
+                // Close mobile menu when a link is clicked
+                if (collapse) {
+                    collapse.addEventListener('click', (event) => {
+                        const link = event.target.closest('a[href]');
+                        if (!link) return;
+
+                        const href = (link.getAttribute('href') || '').trim();
+                        if (href === '' || href === '#') return;
+
+                        // Only close on mobile (when collapse is visible)
+                        if (window.innerWidth < 1400 || navbar.classList.contains('header-force-collapse')) {
+                            const bsCollapse = window.bootstrap?.Collapse?.getInstance(collapse);
+                            if (bsCollapse) {
+                                bsCollapse.hide();
+                            } else {
+                                collapse.classList.remove('show');
+                            }
+                        }
+                    });
+                }
+
+                // Close any open dropdown when a dropdown-item link is clicked
+                document.querySelectorAll('.dropdown-menu').forEach((menu) => {
+                    menu.addEventListener('click', (event) => {
+                        const link = event.target.closest('a[href], button[type="submit"]');
+                        if (!link) return;
+
+                        const href = link.getAttribute('href') || '';
+                        const isSubmit = link.type === 'submit';
+                        if (!isSubmit && (href.trim() === '' || href.trim() === '#')) return;
+
+                        // Close the dropdown
+                        const dropdown = menu.closest('.dropdown');
+                        const toggle = dropdown?.querySelector('[data-bs-toggle="dropdown"], .top-login-toggle');
+                        menu.classList.remove('show');
+                        if (toggle) {
+                            toggle.classList.remove('show');
+                            toggle.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                });
             })();
         </script>
     @endpush
